@@ -21,7 +21,7 @@ metadata:
 platform:
   aws:
     region: ${AWS_DEFAULT_REGION}
-pullSecret: '${{ secrets.PULL_SECRET }}'
+pullSecret: '${PULL_SECRET}'
 sshKey: '${SSH_KEY}'
 EOF
 
