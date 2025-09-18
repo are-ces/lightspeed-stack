@@ -1,4 +1,4 @@
-# .github/workflows/e2e_test.yml
+# .github/workflows/e2e_RHOAI.yml
 name: E2E Tests RHOAI
 
 on: [push, pull_request_target]
