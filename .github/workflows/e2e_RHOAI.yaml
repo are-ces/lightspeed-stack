@@ -4,11 +4,10 @@ name: E2E Tests RHOAI
 on: [push, pull_request_target]
 
 jobs:
-  e2e_tests:
+  e2e_rhoai:
     runs-on: ubuntu-latest
     env:
       #OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
 
     steps:
       - uses: actions/checkout@v4
