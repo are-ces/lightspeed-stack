@@ -241,11 +241,19 @@ jobs:
           cat run.yaml
           echo "Public key: $SSH_KEY"
 
-      - name: Build OpenShift installer
+      - name: Download OpenShift installer
         run: |
-          git clone https://github.com/openshift/installer.git
-          cd installer
-          ./hack/build.sh
+          mkdir -p $HOME/bin
+          curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
+          tar -xzf openshift-install-linux.tar.gz
+          rm openshift-install-linux.tar.gz
+          mv openshift-install $HOME/bin/
+          chmod +x $HOME/bin/openshift-install
+
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Verify OpenShift installer
+        run: openshift-install version
 
       - name: list files 2
         run: |
