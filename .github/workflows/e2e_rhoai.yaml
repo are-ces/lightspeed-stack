@@ -1,0 +1,380 @@
+# .github/workflows/e2e_rhoai.yml
+name:  RHOAI E2E Tests
+
+on: 
+  push
+
+jobs:
+  e2e_rhoai:
+    runs-on: ubuntu-latest
+    env:
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      PULL_SECRET: ${{ secrets.PULL_SECRET }}
+      SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+      BASE_DOMAIN: ${{ secrets.BASE_DOMAIN }}
+      CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+      OPENSHIFT_WORKDIR: "./ocp-cluster"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # On PR_TARGET → the fork (or same repo) that opened the PR.
+          # On push      → falls back to the current repository.
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+
+          # On PR_TARGET → the PR head *commit* (reproducible).
+          # On push      → the pushed commit that triggered the workflow.
+          ref: ${{ github.event.pull_request.head.ref || github.sha }}
+
+          # Don’t keep credentials when running untrusted PR code under PR_TARGET.
+          persist-credentials: ${{ github.event_name != 'pull_request_target' }}
+
+      - name: Debug checkout for umago/lightspeed-stack setup-metrics branch
+        run: |
+          echo "=== GitHub Event Information ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Base repo: ${{ github.repository }}"
+          echo "Base SHA: ${{ github.sha }}"
+          echo ""
+          echo "=== PR Information ==="
+          echo "PR head repo: '${{ github.event.pull_request.head.repo.full_name }}'"
+          echo "PR head ref: '${{ github.event.pull_request.head.ref }}'"
+          echo "PR head SHA: '${{ github.event.pull_request.head.sha }}'"
+          echo "PR number: ${{ github.event.pull_request.number }}"
+          echo ""
+          echo "=== Resolved Checkout Values ==="
+          echo "Repository used: ${{ github.event.pull_request.head.repo.full_name || github.repository }}"
+          echo "Ref used: ${{ github.event.pull_request.head.ref || github.sha }}"
+          echo ""
+          echo "=== Expected for umago/lightspeed-stack:setup-metrics ==="
+          echo "Should be repo: umago/lightspeed-stack" 
+          echo "Should be ref: setup-metrics"
+
+      - name: Verify actual git checkout result
+        run: |
+          echo "=== Git Status After Checkout ==="
+          echo "Remote URLs:"
+          git remote -v
+          echo ""
+          echo "Current branch: $(git branch --show-current 2>/dev/null || echo 'detached HEAD')"
+          echo "Current commit: $(git rev-parse HEAD)"
+          echo "Current commit message: $(git log -1 --oneline)"
+          echo ""
+          echo "=== Recent commits (should show setup-metrics commits) ==="
+          git log --oneline -5
+
+      - uses: 1arp/create-a-file-action@0.4.5
+        env: 
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          path: '.'
+          isAbsolutePath: false
+          file: 'lightspeed-stack.yaml'
+          content: |
+            name: Lightspeed Core Service (LCS)
+            service:
+              host: 0.0.0.0
+              port: 8080
+              auth_enabled: false
+              workers: 1
+              color_log: true
+              access_log: true
+            llama_stack:
+              # Uses a remote llama-stack service
+              # The instance would have already been started with a llama-stack-run.yaml file
+              use_as_library_client: false
+              # Alternative for "as library use"
+              # use_as_library_client: true
+              # library_client_config_path: <path-to-llama-stack-run.yaml-file>
+              url: http://llama-stack:8321
+              api_key: xyzzy
+            user_data_collection:
+              feedback_enabled: true
+              feedback_storage: "/tmp/data/feedback"
+              transcripts_enabled: true
+              transcripts_storage: "/tmp/data/transcripts"
+
+            authentication:
+              module: "noop"
+
+      - uses: 1arp/create-a-file-action@0.4.5
+        env: 
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          path: '.'
+          isAbsolutePath: false
+          file: 'run.yaml'
+          content: |
+            version: '2'
+            image_name: simplest-llamastack-app
+            apis:
+              - agents
+              - datasetio
+              - eval
+              - inference
+              - post_training
+              - safety
+              - scoring
+              - telemetry
+              - tool_runtime
+              - vector_io
+            benchmarks: []
+            container_image: null
+            datasets: []
+            external_providers_dir: null
+            inference_store:
+              db_path: /app-root/.llama/distributions/ollama/inference_store.db
+              type: sqlite
+            logging: null
+            metadata_store:
+              db_path: /app-root/.llama/distributions/ollama/registry.db
+              namespace: null
+              type: sqlite
+            providers:
+              agents:
+              - config:
+                  persistence_store:
+                    db_path: /app-root/.llama/distributions/ollama/agents_store.db
+                    namespace: null
+                    type: sqlite
+                  responses_store:
+                    db_path: /app-root/.llama/distributions/ollama/responses_store.db
+                    type: sqlite
+                provider_id: meta-reference
+                provider_type: inline::meta-reference
+              datasetio:
+              - config:
+                  kvstore:
+                    db_path: /app-root/.llama/distributions/ollama/huggingface_datasetio.db
+                    namespace: null
+                    type: sqlite
+                provider_id: huggingface
+                provider_type: remote::huggingface
+              - config:
+                  kvstore:
+                    db_path: /app-root/.llama/distributions/ollama/localfs_datasetio.db
+                    namespace: null
+                    type: sqlite
+                provider_id: localfs
+                provider_type: inline::localfs
+              eval:
+              - config:
+                  kvstore:
+                    db_path: /app-root/.llama/distributions/ollama/meta_reference_eval.db
+                    namespace: null
+                    type: sqlite
+                provider_id: meta-reference
+                provider_type: inline::meta-reference
+              inference:
+                - provider_id: openai
+                  provider_type: remote::openai
+                  config:
+                    api_key: ${{ env.OPENAI_API_KEY }}
+              post_training:
+              - config:
+                  checkpoint_format: huggingface
+                  device: cpu
+                  distributed_backend: null
+                  dpo_output_dir: '.'
+                provider_id: huggingface
+                provider_type: inline::huggingface-gpu
+              safety:
+              - config:
+                  excluded_categories: []
+                provider_id: llama-guard
+                provider_type: inline::llama-guard
+              scoring:
+              - config: {}
+                provider_id: basic
+                provider_type: inline::basic
+              - config: {}
+                provider_id: llm-as-judge
+                provider_type: inline::llm-as-judge
+              - config:
+                  openai_api_key: '******'
+                provider_id: braintrust
+                provider_type: inline::braintrust
+              telemetry:
+              - config:
+                  service_name: 'lightspeed-stack'
+                  sinks: sqlite
+                  sqlite_db_path: /app-root/.llama/distributions/ollama/trace_store.db
+                provider_id: meta-reference
+                provider_type: inline::meta-reference
+              tool_runtime:
+                - provider_id: model-context-protocol
+                  provider_type: remote::model-context-protocol
+                  config: {}
+              vector_io:
+              - config:
+                  kvstore:
+                    db_path: /app-root/.llama/distributions/ollama/faiss_store.db
+                    namespace: null
+                    type: sqlite
+                provider_id: faiss
+                provider_type: inline::faiss
+            scoring_fns: []
+            server:
+              auth: null
+              host: null
+              port: 8321
+              quota: null
+              tls_cafile: null
+              tls_certfile: null
+              tls_keyfile: null
+            shields: []
+            vector_dbs: []
+
+            models:
+              - model_id: gpt-4o-mini
+                provider_id: openai
+                model_type: llm
+                provider_model_id: gpt-4o-mini
+
+      # - name: Set up SSH
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+      #     chmod 600 ~/.ssh/id_ed25519
+
+      - name: list files
+        run: |
+          ls
+          cat lightspeed-stack.yaml
+          cat run.yaml
+
+      - name: Download OpenShift installer
+        run: |
+          mkdir -p $HOME/bin
+          curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
+          tar -xzf openshift-install-linux.tar.gz
+          rm openshift-install-linux.tar.gz
+          mv openshift-install $HOME/bin/
+          chmod +x $HOME/bin/openshift-install
+
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Verify OpenShift installer
+        run: |
+          if ! command -v openshift-install &> /dev/null
+          then
+            echo "❌ openshift-install not found. Installation failed."
+            exit 1
+          fi
+
+          echo "✅ openshift-install is installed."
+          openshift-install version
+
+      - name: Install OpenShift client (oc)
+        run: |
+          curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
+          tar -xzf openshift-client-linux.tar.gz
+          rm openshift-client-linux.tar.gz
+          mv oc kubectl $HOME/bin/
+          chmod +x $HOME/bin/oc $HOME/bin/kubectl
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Verify OpenShift client installation
+        run: |
+          if ! command -v oc &> /dev/null
+          then
+            echo "❌ oc CLI not found. Installation failed."
+            exit 1
+          fi
+
+          echo "✅ oc CLI is installed."
+          oc version
+
+
+      - name: list files 2
+        run: |
+          ls
+
+      - name: Deploy OpenShift cluster
+        run: |
+          ./e2e/RHOAI/deploy_openshift_aws.sh
+
+      - name: Set KUBECONFIG for subsequent steps
+        run: |
+          echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
+
+      - name: Create Hugging Face secret
+        run: |
+          oc create secret generic hf-token-secret \
+            --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
+            -n default || echo "Secret exists"
+
+      - name: Create vLLM API key secret
+        run: |
+          oc create secret generic vllm-api-key-secret \
+            --from-literal=key="${{ secrets.API_KEY }}" \
+            -n default || echo "Secret exists"
+
+      - name: Deploy pod
+        run: |
+          ./e2e/RHOAI/pipeline.sh
+
+      - name: Expose service
+        run: |
+          ./e2e/RHOAI/scripts/expose-service.sh
+
+      - name: list files 3
+        run: |
+          ls
+          cat pod.env
+          oc get pods
+
+      - name: Call vLLM API
+        run: |
+          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.API_KEY }}"
+
+      - name: Destroy OpenShift cluster
+        if: always()
+        run: |
+          openshift-install destroy cluster --dir="$OPENSHIFT_WORKDIR"
+
+
+      # - name: Run service manually
+      #   env: 
+      #       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      #   run: |
+      #     # Debug: Check if environment variable is available for docker-compose
+      #     echo "OPENAI_API_KEY is set: $([ -n "$OPENAI_API_KEY" ] && echo 'YES' || echo 'NO')"
+      #     echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
+          
+      #     docker compose version
+      #     docker compose up -d
+          
+      #     # Check for errors and show logs if any services failed
+      #     if docker compose ps | grep -E 'Exit|exited|stopped'; then
+      #       echo "Some services failed to start - showing logs:"
+      #       docker compose logs
+      #       exit 1
+      #     else
+      #       echo "All services started successfully"
+      #     fi
+
+      # - name: Wait for services
+      #   run: |
+      #     echo "Waiting for services to be healthy..."
+      #     sleep 20  # adjust depending on boot time
+
+      # - name: Quick connectivity test
+      #   run: |
+      #     echo "Testing basic connectivity before full test suite..."
+      #     curl -f http://localhost:8080/v1/models || {
+      #       echo "❌ Basic connectivity failed - showing logs before running full tests"
+      #       docker compose logs --tail=30
+      #       exit 1
+      #     }
+
+      # - name: Run e2e tests
+      #   run: |
+      #     echo "Installing test dependencies..."
+      #     pip install uv
+      #     uv sync
+
+      #     echo "Running comprehensive e2e test suite..."
+      #     make test-e2e
