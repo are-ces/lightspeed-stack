@@ -1,7 +1,11 @@
-# .github/workflows/e2e_RHOAI.yml
+# .github/workflows/e2e_rhoai.yml
 name: E2E Tests RHOAI
 
-on: [push, pull_request]
+on: 
+  push:
+    branches: [main, e2e-rhoai]
+  pull_request:
+    branches: [main, e2e-rhoai]
 
 jobs:
   e2e_rhoai:
