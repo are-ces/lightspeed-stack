@@ -8,7 +8,11 @@ jobs:
   e2e_rhoai:
     runs-on: ubuntu-latest
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      PULL_SECRET: ${{ secrets.PULL_SECRET }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -259,7 +263,7 @@ jobs:
         run: |
           ls
 
-      - name: Verify OpenShift installer
+      - name: Deploy OpenShift cluster
         run: ./e2e/RHOAI/deploy_openshift_aws.sh
 
 

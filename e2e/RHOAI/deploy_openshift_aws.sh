@@ -6,11 +6,6 @@ CLUSTER_NAME="e2elcs"
 BASE_DOMAIN="ccxdev.devshift.net"
 WORKDIR="./ocp-cluster"
 
-
-#AWS_ACCESS_KEY_ID
-#AWS_SECRET_ACCESS_KEY
-AWS_DEFAULT_REGION=us-east-2
-
 # Prepare workdir
 mkdir -p "$WORKDIR"
 cat > "$WORKDIR/install-config.yaml" <<EOF
