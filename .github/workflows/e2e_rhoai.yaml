@@ -1,5 +1,5 @@
 # .github/workflows/e2e_rhoai.yml
-name: E2E Tests RHOAI
+name:  RHOAI E2E Tests
 
 on: 
   push
