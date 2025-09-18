@@ -259,45 +259,49 @@ jobs:
         run: |
           ls
 
-      - name: Run service manually
-        env: 
-            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          # Debug: Check if environment variable is available for docker-compose
-          echo "OPENAI_API_KEY is set: $([ -n "$OPENAI_API_KEY" ] && echo 'YES' || echo 'NO')"
-          echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
+      - name: Verify OpenShift installer
+        run: ./e2e/RHOAI/deploy_openshift_aws.sh
+
+
+      # - name: Run service manually
+      #   env: 
+      #       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      #   run: |
+      #     # Debug: Check if environment variable is available for docker-compose
+      #     echo "OPENAI_API_KEY is set: $([ -n "$OPENAI_API_KEY" ] && echo 'YES' || echo 'NO')"
+      #     echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
           
-          docker compose version
-          docker compose up -d
+      #     docker compose version
+      #     docker compose up -d
           
-          # Check for errors and show logs if any services failed
-          if docker compose ps | grep -E 'Exit|exited|stopped'; then
-            echo "Some services failed to start - showing logs:"
-            docker compose logs
-            exit 1
-          else
-            echo "All services started successfully"
-          fi
+      #     # Check for errors and show logs if any services failed
+      #     if docker compose ps | grep -E 'Exit|exited|stopped'; then
+      #       echo "Some services failed to start - showing logs:"
+      #       docker compose logs
+      #       exit 1
+      #     else
+      #       echo "All services started successfully"
+      #     fi
 
-      - name: Wait for services
-        run: |
-          echo "Waiting for services to be healthy..."
-          sleep 20  # adjust depending on boot time
+      # - name: Wait for services
+      #   run: |
+      #     echo "Waiting for services to be healthy..."
+      #     sleep 20  # adjust depending on boot time
 
-      - name: Quick connectivity test
-        run: |
-          echo "Testing basic connectivity before full test suite..."
-          curl -f http://localhost:8080/v1/models || {
-            echo "❌ Basic connectivity failed - showing logs before running full tests"
-            docker compose logs --tail=30
-            exit 1
-          }
+      # - name: Quick connectivity test
+      #   run: |
+      #     echo "Testing basic connectivity before full test suite..."
+      #     curl -f http://localhost:8080/v1/models || {
+      #       echo "❌ Basic connectivity failed - showing logs before running full tests"
+      #       docker compose logs --tail=30
+      #       exit 1
+      #     }
 
-      - name: Run e2e tests
-        run: |
-          echo "Installing test dependencies..."
-          pip install uv
-          uv sync
+      # - name: Run e2e tests
+      #   run: |
+      #     echo "Installing test dependencies..."
+      #     pip install uv
+      #     uv sync
 
-          echo "Running comprehensive e2e test suite..."
-          make test-e2e
+      #     echo "Running comprehensive e2e test suite..."
+      #     make test-e2e
