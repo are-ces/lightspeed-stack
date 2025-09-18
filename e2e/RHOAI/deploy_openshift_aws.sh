@@ -6,6 +6,7 @@ CLUSTER_NAME="e2elcs"
 BASE_DOMAIN="ccxdev.devshift.net"
 WORKDIR="./ocp-cluster"
 
+
 export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
 export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
 AWS_DEFAULT_REGION=us-east-2
