@@ -231,11 +231,11 @@ jobs:
                 model_type: llm
                 provider_model_id: gpt-4o-mini
 
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+      # - name: Set up SSH
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+      #     chmod 600 ~/.ssh/id_ed25519
 
       - name: list files
         run: |
@@ -261,8 +261,39 @@ jobs:
         run: |
           ls
 
+      - name: Create Hugging Face secret
+        run: |
+          oc create secret generic hf-token-secret \
+            --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
+            -n default || echo "Secret exists"
+
+      - name: Create vLLM API key secret
+        run: |
+          oc create secret generic vllm-api-key-secret \
+            --from-literal=key="${{ secrets.API_KEY }}" \
+            -n default || echo "Secret exists"
+
       - name: Deploy OpenShift cluster
-        run: ./e2e/RHOAI/deploy_openshift_aws.sh
+        run: |
+          ./e2e/RHOAI/deploy_openshift_aws.sh
+
+      - name: Deploy pod
+        run: |
+          ./e2e/RHOAI/pipeline.sh
+
+      - name: Expose service
+        run: |
+          ./e2e/RHOAI/scripts/expose-service.sh
+
+      - name: list files 3
+        run: |
+          ls
+          cat pod.env
+          oc get pods
+
+      - name: Call vLLM API
+        run: |
+          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.API_KEY }}"
 
       - name: Destroy OpenShift cluster
         if: always()
