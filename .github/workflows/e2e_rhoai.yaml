@@ -267,8 +267,7 @@ jobs:
 
       - name: Install OpenShift client (oc)
         run: |
-          mkdir -p $HOME/bin
-          curl -L -o openshift-client-linux.tar.gz "https://access.cdn.redhat.com/content/origin/files/sha256/8b/8b94d4f6c78d070b764c1f83471cb3f1d68fa44279e9c8011c65d122196a6c08/openshift-client-linux-amd64-rhel9-4.19.10.tar.gz"
+          curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
           tar -xzf openshift-client-linux.tar.gz
           rm openshift-client-linux.tar.gz
           mv oc kubectl $HOME/bin/
