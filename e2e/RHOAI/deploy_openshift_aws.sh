@@ -16,10 +16,11 @@ platform:
   aws:
     region: ${AWS_DEFAULT_REGION}
 pullSecret: '${PULL_SECRET}'
-sshKey: '${SSH_KEY}'
+sshKey: '${SSH_PUBLIC_KEY}'
 EOF
 
 echo "✅ install-config.yaml created in $OPENSHIFT_WORKDIR"
 
+cat "$OPENSHIFT_WORKDIR/install-config.yaml"
 # Run the installer
 openshift-install create cluster --dir="$OPENSHIFT_WORKDIR" --log-level=info
