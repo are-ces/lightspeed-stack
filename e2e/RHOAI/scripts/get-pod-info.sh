@@ -13,16 +13,27 @@ echo "--> Finding the pod for InferenceService '$ISVC_NAME'..."
 
 # 1. Find the running pod for the InferenceService
 POD_NAME=""
-until [ -n "$POD_NAME" ]; do
+TIMEOUT=120  # seconds
+INTERVAL=5   # check interval
+ELAPSED=0
+
+until [ -n "$POD_NAME" ] || [ $ELAPSED -ge $TIMEOUT ]; do
   POD_NAME=$(oc get pods -n "$NAMESPACE" \
     -l "serving.kserve.io/inferenceservice=$ISVC_NAME" \
     -o jsonpath="{.items[?(@.status.phase=='Running')].metadata.name}" 2>/dev/null)
+
   if [ -z "$POD_NAME" ]; then
-    echo "  -> Pod not running yet, waiting 5 seconds..."
-    sleep 5
+    echo "  -> Pod not running yet, waiting $INTERVAL seconds..."
+    sleep $INTERVAL
+    ELAPSED=$((ELAPSED + INTERVAL))
   fi
 done
-echo "  -> Found running pod: $POD_NAME"
+
+if [ -z "$POD_NAME" ]; then
+  echo "  -> Timeout reached after $TIMEOUT seconds. Pod is not running."
+else
+  echo "  -> Pod is running: $POD_NAME"
+fi
 
 # 2. Get the 'app' label for Service selector
 APP_LABEL=$(oc get pod "$POD_NAME" -n "$NAMESPACE" -o jsonpath='{.metadata.labels.app}')
