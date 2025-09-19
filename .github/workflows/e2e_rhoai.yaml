@@ -13,6 +13,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       PULL_SECRET: ${{ secrets.PULL_SECRET }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
+      OPENSHIFT_WORKDIR: "./ocp-cluster"
 
     steps:
       - uses: actions/checkout@v4
@@ -265,6 +266,11 @@ jobs:
 
       - name: Deploy OpenShift cluster
         run: ./e2e/RHOAI/deploy_openshift_aws.sh
+
+      - name: Destroy OpenShift cluster
+        if: always()
+        run: |
+          openshift-install destroy cluster --dir="$OPENSHIFT_WORKDIR"
 
 
       # - name: Run service manually
