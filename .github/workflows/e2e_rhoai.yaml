@@ -290,6 +290,14 @@ jobs:
         run: |
           ls
 
+      - name: Deploy OpenShift cluster
+        run: |
+          ./e2e/RHOAI/deploy_openshift_aws.sh
+
+      - name: Set KUBECONFIG for subsequent steps
+        run: |
+          echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
+
       - name: Create Hugging Face secret
         run: |
           oc create secret generic hf-token-secret \
@@ -301,10 +309,6 @@ jobs:
           oc create secret generic vllm-api-key-secret \
             --from-literal=key="${{ secrets.API_KEY }}" \
             -n default || echo "Secret exists"
-
-      - name: Deploy OpenShift cluster
-        run: |
-          ./e2e/RHOAI/deploy_openshift_aws.sh
 
       - name: Deploy pod
         run: |
