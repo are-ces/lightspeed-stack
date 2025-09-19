@@ -2,8 +2,12 @@
 set -euo pipefail
 
 # Configurable variables
-CLUSTER_NAME="e2elcs"
+CLUSTER_NAME="cpompeia"
 BASE_DOMAIN="ccxdev.devshift.net"
+
+TODAY=$(date '+%d-%m-%Y')
+
+CLUSTER_NAME="${CLUSTER_NAME}.${TODAY}"
 
 # Prepare workdir
 mkdir -p "$OPENSHIFT_WORKDIR"
