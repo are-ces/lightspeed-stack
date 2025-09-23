@@ -16,6 +16,8 @@ jobs:
       BASE_DOMAIN: ${{ secrets.BASE_DOMAIN }}
       CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
       OPENSHIFT_WORKDIR: "./ocp-cluster"
+      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4

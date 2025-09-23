@@ -23,4 +23,4 @@ EOF
 echo "✅ install-config.yaml created in $OPENSHIFT_WORKDIR"
 
 # Run the installer
-openshift-install create cluster --dir="$OPENSHIFT_WORKDIR" --log-level=info
+openshift-install create cluster --dir="$OPENSHIFT_WORKDIR" --log-level=debug

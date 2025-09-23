@@ -28,12 +28,12 @@ spec:
         - name: HUGGING_FACE_HUB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: hf-token-secret
+              name: HUGGING_FACE_HUB_TOKEN
               key: token
         - name: VLLM_API_KEY
           valueFrom:
             secretKeyRef:
-              name: vllm-api-key-secret
+              name: VLLM_API_KEY
               key: key
       ports:
         - containerPort: 8080

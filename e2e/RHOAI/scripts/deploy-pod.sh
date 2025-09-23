@@ -2,23 +2,20 @@
 
 BASE_DIR="$1"
 
-# Wait for ServingRuntime CRD
-oc wait --for=condition=established crd/servingruntimes.serving.kserve.io --timeout=120s
+# Wait until the CRDs exist
+for crd in servingruntimes.serving.kserve.io inferenceservices.serving.kserve.io; do
+  echo "Waiting for CRD $crd to exist..."
+  until oc get crd $crd &>/dev/null; do
+    sleep 5
+  done
+  echo "CRD $crd exists. Waiting to be established..."
+  oc wait --for=condition=established crd/$crd --timeout=120s
+done
 
-# Wait for InferenceService CRD
-oc wait --for=condition=established crd/inferenceservices.serving.kserve.io --timeout=120s
+oc rollout status deployment/kserve-controller-manager -n redhat-ods-applications --timeout=180s
+
+sleep 20
 
 oc apply -f "$BASE_DIR/config/pod/vllm-runtime-cpu.yaml"
-
-# # Wait for the CRD to be recognized by the API server
-# CRD_NAME="vllmruntimes.serving.kserve.io"
-
-# # Only wait if it exists
-# if oc get crd "$CRD_NAME" >/dev/null 2>&1; then
-#     echo "Waiting for CRD $CRD_NAME to be deleted..."
-#     until ! oc get crd "$CRD_NAME" >/dev/null 2>&1; do
-#         sleep 2
-#     done
-#fi
 
 oc apply -f "$BASE_DIR/config/pod/inference-service.yaml"
