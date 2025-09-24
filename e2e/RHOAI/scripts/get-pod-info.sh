@@ -29,6 +29,13 @@ until [ -n "$POD_NAME" ] || [ $ELAPSED -ge $TIMEOUT ]; do
   fi
 done
 
+oc get pods
+
+oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+
+oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+
+
 if [ -z "$POD_NAME" ]; then
   echo "  -> Timeout reached after $TIMEOUT seconds. Pod is not running."
 else

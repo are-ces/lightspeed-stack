@@ -311,7 +311,7 @@ jobs:
       - name: Create vLLM API key secret
         run: |
           oc create secret generic vllm-api-key-secret \
-            --from-literal=key="${{ secrets.API_KEY }}" \
+            --from-literal=key="${{ secrets.VLLM_API_KEY }}" \
             -n default || echo "Secret exists"
 
       - name: Deploy pod
