@@ -330,7 +330,7 @@ jobs:
 
       - name: Call vLLM API
         run: |
-          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.API_KEY }}"
+          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
 
       - name: Destroy OpenShift cluster
         if: always()
