@@ -68,8 +68,6 @@ jobs:
           git log --oneline -5
 
       - uses: 1arp/create-a-file-action@0.4.5
-        env: 
-            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           path: '.'
           isAbsolutePath: false
@@ -103,7 +101,8 @@ jobs:
 
       - uses: 1arp/create-a-file-action@0.4.5
         env: 
-            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            KSVC_URL: ${{ env.KSVC_URL }}
+            VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
         with:
           path: '.'
           isAbsolutePath: false
@@ -170,10 +169,11 @@ jobs:
                 provider_id: meta-reference
                 provider_type: inline::meta-reference
               inference:
-                - provider_id: openai
-                  provider_type: remote::openai
-                  config:
-                    api_key: ${{ env.OPENAI_API_KEY }}
+                  - provider_id: vllm
+                    provider_type: remote::vllm
+                    config:
+                      url: http://$KSVC_URL/v1/
+                      api_token: ${{ secrets.VLLM_API_KEY }}
               post_training:
               - config:
                   checkpoint_format: huggingface
@@ -230,10 +230,10 @@ jobs:
             vector_dbs: []
 
             models:
-              - model_id: gpt-4o-mini
-                provider_id: openai
+              - model_id: meta-llama/Llama-3.2-1B-Instruct
+                provider_id: vllm
                 model_type: llm
-                provider_model_id: gpt-4o-mini
+                provider_model_id: null
 
       # - name: Set up SSH
       #   run: |
@@ -332,51 +332,50 @@ jobs:
         run: |
           ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
 
+      - name: Save vLLM URL
+        run: |
+          echo "Using the computed URL: $KSVC_URL"
+          echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
+
+      # Run e2e test
+      - name: Run service manually
+        run: |          
+          docker compose version
+          docker compose up -d
+          
+          # Check for errors and show logs if any services failed
+          if docker compose ps | grep -E 'Exit|exited|stopped'; then
+            echo "Some services failed to start - showing logs:"
+            docker compose logs
+            exit 1
+          else
+            echo "All services started successfully"
+          fi
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for services to be healthy..."
+          sleep 20  # adjust depending on boot time
+
+      - name: Quick connectivity test
+        run: |
+          echo "Testing basic connectivity before full test suite..."
+          curl -f http://localhost:8080/v1/models || {
+            echo "❌ Basic connectivity failed - showing logs before running full tests"
+            docker compose logs --tail=30
+            exit 1
+          }
+
+      - name: Run e2e tests
+        run: |
+          echo "Installing test dependencies..."
+          pip install uv
+          uv sync
+
+          echo "Running comprehensive e2e test suite..."
+          make test-e2e
+
       - name: Destroy OpenShift cluster
         if: always()
         run: |
           openshift-install destroy cluster --dir="$OPENSHIFT_WORKDIR"
-
-
-      # - name: Run service manually
-      #   env: 
-      #       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      #   run: |
-      #     # Debug: Check if environment variable is available for docker-compose
-      #     echo "OPENAI_API_KEY is set: $([ -n "$OPENAI_API_KEY" ] && echo 'YES' || echo 'NO')"
-      #     echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
-          
-      #     docker compose version
-      #     docker compose up -d
-          
-      #     # Check for errors and show logs if any services failed
-      #     if docker compose ps | grep -E 'Exit|exited|stopped'; then
-      #       echo "Some services failed to start - showing logs:"
-      #       docker compose logs
-      #       exit 1
-      #     else
-      #       echo "All services started successfully"
-      #     fi
-
-      # - name: Wait for services
-      #   run: |
-      #     echo "Waiting for services to be healthy..."
-      #     sleep 20  # adjust depending on boot time
-
-      # - name: Quick connectivity test
-      #   run: |
-      #     echo "Testing basic connectivity before full test suite..."
-      #     curl -f http://localhost:8080/v1/models || {
-      #       echo "❌ Basic connectivity failed - showing logs before running full tests"
-      #       docker compose logs --tail=30
-      #       exit 1
-      #     }
-
-      # - name: Run e2e tests
-      #   run: |
-      #     echo "Installing test dependencies..."
-      #     pip install uv
-      #     uv sync
-
-      #     echo "Running comprehensive e2e test suite..."
-      #     make test-e2e
