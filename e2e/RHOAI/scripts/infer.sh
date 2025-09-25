@@ -16,7 +16,7 @@ oc get pods
 echo "⏳ Waiting for service at $KSVC_URL/v1/models (timeout 1000s)..."
 
 START=$(date +%s)
-TIMEOUT=200
+TIMEOUT=1000
 
 while true; do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -39,6 +39,18 @@ while true; do
   echo "⏳ Still waiting... ($ELAPSED/$TIMEOUT seconds elapsed)"
   sleep 10
 done
+
+echo "Logs 2"
+POD_NAME=$(oc get pods -o jsonpath='{.items[0].metadata.name}')
+
+oc describe pod $POD_NAME
+
+echo "Logs"
+
+oc logs $POD_NAME -c kserve-container
+oc logs $POD_NAME -c queue-proxy
+oc logs $POD_NAME -c istio-proxy
+
 
 oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
 

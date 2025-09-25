@@ -31,11 +31,15 @@ done
 
 oc get pods
 
-oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+POD_NAME=$(oc get pods -o jsonpath='{.items[0].metadata.name}')
 
-echo "Logs >>"
+oc describe pod $POD_NAME
 
-oc logs $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+echo "Logs"
+
+oc logs $POD_NAME -c kserve-container
+oc logs $POD_NAME -c queue-proxy
+oc logs $POD_NAME -c istio-proxy
 
 
 if [ -z "$POD_NAME" ]; then
