@@ -334,6 +334,7 @@ jobs:
 
       - name: Save vLLM URL
         run: |
+          source pod.env
           echo "Using the computed URL: $KSVC_URL"
           echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
 

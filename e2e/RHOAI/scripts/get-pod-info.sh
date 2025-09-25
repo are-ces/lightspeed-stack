@@ -33,7 +33,9 @@ oc get pods
 
 oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
 
-oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+echo "Logs >>"
+
+oc logs $(oc get pods -o jsonpath='{.items[0].metadata.name}')
 
 
 if [ -z "$POD_NAME" ]; then
