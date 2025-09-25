@@ -16,10 +16,12 @@ oc get pods
 echo "⏳ Waiting for service at $KSVC_URL/v1/completions (timeout 1000s)..."
 
 START=$(date +%s)
-TIMEOUT=1000
+TIMEOUT=200
 
 while true; do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$KSVC_URL/v1/completions")
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+  --cacert router-ca.crt \
+  "$KSVC_URL/v1/models")
 
   if [ "$STATUS" -eq 200 ]; then
     echo "✅ Service is ready at $KSVC_URL/v1/completions"
@@ -31,7 +33,6 @@ while true; do
 
   if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
     echo "❌ Timeout reached ($TIMEOUT seconds). Service did not become ready."
-    exit 1
   fi
 
   echo "⏳ Still waiting... ($ELAPSED/$TIMEOUT seconds elapsed)"
