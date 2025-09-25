@@ -13,7 +13,7 @@ sleep 200
 oc get pods
 
 ####
-echo "⏳ Waiting for service at $KSVC_URL/v1/completions (timeout 1000s)..."
+echo "⏳ Waiting for service at $KSVC_URL/v1/models (timeout 1000s)..."
 
 START=$(date +%s)
 TIMEOUT=200
@@ -24,7 +24,7 @@ while true; do
   "$KSVC_URL/v1/models")
 
   if [ "$STATUS" -eq 200 ]; then
-    echo "✅ Service is ready at $KSVC_URL/v1/completions"
+    echo "✅ Service is ready at $KSVC_URL/v1/models"
     break
   fi
 
@@ -33,11 +33,14 @@ while true; do
 
   if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
     echo "❌ Timeout reached ($TIMEOUT seconds). Service did not become ready."
+    break
   fi
 
   echo "⏳ Still waiting... ($ELAPSED/$TIMEOUT seconds elapsed)"
   sleep 10
 done
+
+oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
 
 ####
 
