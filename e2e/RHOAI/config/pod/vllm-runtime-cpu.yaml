@@ -15,17 +15,17 @@ spec:
         # - /mnt/models/
         - meta-llama/Llama-3.2-1B-Instruct
         - --enable-auto-tool-choice
-        - --tool-call-parser llama3_json
-        - --chat-template examples/tool_chat_template_llama3.1_json.jinja
+        - --tool-call-parser 
+        - llama3_json
+        - --chat-template 
+        - /mnt/chat-template/tool_chat_template_llama3.2_json.jinja
         - --download-dir
         - /tmp/models-cache
         - --port
         - "8080"
         - --max-model-len
         - "2048"
-        - --api-key
-        - "${VLLM_API_KEY}"
-      image: quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9:0.3
+      image: quay.io/rh-ee-cpompeia/vllm-cpu:latest
       name: kserve-container
       env:
         - name: HUGGING_FACE_HUB_TOKEN
@@ -42,6 +42,13 @@ spec:
         - containerPort: 8080
           name: http1
           protocol: TCP
+      volumeMounts:
+        - name: chat-template
+          mountPath: /mnt/chat-template
+  volumes:
+    - name: chat-template
+      configMap:
+        name: vllm-chat-template
   multiModel: false
   supportedModelFormats:
     - autoSelect: true
