@@ -200,9 +200,6 @@ jobs:
           echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
 
       - uses: 1arp/create-a-file-action@0.4.5
-        env: 
-            KSVC_URL: ${{ env.KSVC_URL }}
-            VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
         with:
           path: '.'
           isAbsolutePath: false
@@ -238,8 +235,8 @@ jobs:
               - provider_id: vllm
                 provider_type: remote::vllm
                 config:
-                  url: ${{ KSVC_URL }}/v1/
-                  api_token: ${{ VLLM_API_KEY }}
+                  url: ${{ env.KSVC_URL }}/v1/
+                  api_token: ${{ secrets.VLLM_API_KEY }}
                   tls_verify: false
                   max_tokens: 1024
 
