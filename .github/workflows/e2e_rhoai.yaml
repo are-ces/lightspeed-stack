@@ -148,6 +148,17 @@ jobs:
           echo "✅ oc CLI is installed."
           oc version
 
+      - name: Setup AWS
+        run: |
+          oc create secret docker-registry ecr-public-secret \
+            --docker-server=public.ecr.aws \
+            --docker-username=AWS \
+            --docker-password=$(aws ecr-public get-login-password) \
+            --docker-email=<your-email>
+          oc secrets link default ecr-public-secret --for=pull
+
+
+
       - name: Mirror vllm image
         run: |
           oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
