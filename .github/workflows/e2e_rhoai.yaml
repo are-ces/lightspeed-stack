@@ -152,7 +152,7 @@ jobs:
 
       - name: Mirror vllm image
         run: |
-          docker login quay.io -u $QUAY_ROBOT_NAME -p $QUAY_ROBOT_TOKEN
+          echo "$QUAY_ROBOT_TOKEN" | docker login quay.io -u "$QUAY_ROBOT_NAME" --password-stdin
           oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
 
       - name: Deploy OpenShift cluster
