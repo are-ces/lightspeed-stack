@@ -234,8 +234,8 @@ jobs:
               - provider_id: vllm
                 provider_type: remote::vllm
                 config:
-                  url: ${ KSVC_URL }/v1/
-                  api_token: ${ VLLM_API_KEY }
+                  url: ${{ KSVC_URL }}/v1/
+                  api_token: ${{ VLLM_API_KEY }}
                   tls_verify: false
                   max_tokens: 1024
 
