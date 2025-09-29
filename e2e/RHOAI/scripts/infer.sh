@@ -6,11 +6,11 @@ API_KEY="$1"
 
 echo "WAITING FOR POD TO FINISH"
 
-oc get pods
+# oc get pods
 
 sleep 200
 
-oc get pods
+# oc get pods
 
 ####
 echo "⏳ Waiting for service at $KSVC_URL/v1/models (timeout 1000s)..."
@@ -40,19 +40,13 @@ while true; do
   sleep 10
 done
 
-echo "Logs 2"
-POD_NAME=$(oc get pods -o jsonpath='{.items[0].metadata.name}')
+# POD_NAME=$(oc get pods -o jsonpath='{.items[0].metadata.name}')
 
-oc describe pod $POD_NAME
+# oc describe pod $POD_NAME
 
-echo "Logs"
-
-oc logs $POD_NAME -c kserve-container
-oc logs $POD_NAME -c queue-proxy
-oc logs $POD_NAME -c istio-proxy
-
-
-oc describe pod $(oc get pods -o jsonpath='{.items[0].metadata.name}')
+# oc logs $POD_NAME -c kserve-container
+# oc logs $POD_NAME -c queue-proxy
+# oc logs $POD_NAME -c istio-proxy
 
 ####
 

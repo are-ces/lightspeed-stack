@@ -29,18 +29,7 @@ until [ -n "$POD_NAME" ] || [ $ELAPSED -ge $TIMEOUT ]; do
   fi
 done
 
-oc get pods
-
 POD_NAME=$(oc get pods -o jsonpath='{.items[0].metadata.name}')
-
-oc describe pod $POD_NAME
-
-echo "Logs"
-
-oc logs $POD_NAME -c kserve-container
-oc logs $POD_NAME -c queue-proxy
-oc logs $POD_NAME -c istio-proxy
-
 
 if [ -z "$POD_NAME" ]; then
   echo "  -> Timeout reached after $TIMEOUT seconds. Pod is not running."

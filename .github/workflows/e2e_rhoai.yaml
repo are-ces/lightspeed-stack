@@ -105,183 +105,166 @@ jobs:
       #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
       #     chmod 600 ~/.ssh/id_ed25519
 
-      - name: list files
-        run: |
-          ls
-          cat lightspeed-stack.yaml
-          cat run.yaml
+# - name: Download OpenShift installer
+#   run: |
+#     mkdir -p $HOME/bin
+#     curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
+#     tar -xzf openshift-install-linux.tar.gz
+#     rm openshift-install-linux.tar.gz
+#     mv openshift-install $HOME/bin/
+#     chmod +x $HOME/bin/openshift-install
 
-      - name: Download OpenShift installer
-        run: |
-          mkdir -p $HOME/bin
-          curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
-          tar -xzf openshift-install-linux.tar.gz
-          rm openshift-install-linux.tar.gz
-          mv openshift-install $HOME/bin/
-          chmod +x $HOME/bin/openshift-install
+#     echo "$HOME/bin" >> $GITHUB_PATH
 
-          echo "$HOME/bin" >> $GITHUB_PATH
+# - name: Verify OpenShift installer
+#   run: |
+#     if ! command -v openshift-install &> /dev/null
+#     then
+#       echo "❌ openshift-install not found. Installation failed."
+#       exit 1
+#     fi
 
-      - name: Verify OpenShift installer
-        run: |
-          if ! command -v openshift-install &> /dev/null
-          then
-            echo "❌ openshift-install not found. Installation failed."
-            exit 1
-          fi
+#     echo "✅ openshift-install is installed."
+#     openshift-install version
 
-          echo "✅ openshift-install is installed."
-          openshift-install version
+# - name: Install OpenShift client (oc)
+#   run: |
+#     curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
+#     tar -xzf openshift-client-linux.tar.gz
+#     rm openshift-client-linux.tar.gz
+#     mv oc kubectl $HOME/bin/
+#     chmod +x $HOME/bin/oc $HOME/bin/kubectl
+#     echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Install OpenShift client (oc)
-        run: |
-          curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
-          tar -xzf openshift-client-linux.tar.gz
-          rm openshift-client-linux.tar.gz
-          mv oc kubectl $HOME/bin/
-          chmod +x $HOME/bin/oc $HOME/bin/kubectl
-          echo "$HOME/bin" >> $GITHUB_PATH
+# - name: Verify OpenShift client installation
+#   run: |
+#     if ! command -v oc &> /dev/null
+#     then
+#       echo "❌ oc CLI not found. Installation failed."
+#       exit 1
+#     fi
 
-      - name: Verify OpenShift client installation
-        run: |
-          if ! command -v oc &> /dev/null
-          then
-            echo "❌ oc CLI not found. Installation failed."
-            exit 1
-          fi
+#     echo "✅ oc CLI is installed."
+#     oc version
 
-          echo "✅ oc CLI is installed."
-          oc version
+# - name: Deploy OpenShift cluster
+#   run: |
+#     ./e2e/RHOAI/deploy_openshift_aws.sh
 
+# - name: Set KUBECONFIG for subsequent steps
+#   run: |
+#     echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
 
-      - name: list files 2
-        run: |
-          ls
+# - name: Create Hugging Face secret
+#   run: |
+#     oc create secret generic hf-token-secret \
+#       --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
+#       -n default || echo "Secret exists"
 
-      - name: Deploy OpenShift cluster
-        run: |
-          ./e2e/RHOAI/deploy_openshift_aws.sh
+# - name: Create vLLM API key secret
+#   run: |
+#     oc create secret generic vllm-api-key-secret \
+#       --from-literal=key="${{ secrets.VLLM_API_KEY }}" \
+#       -n default || echo "Secret exists"
 
-      - name: Set KUBECONFIG for subsequent steps
-        run: |
-          echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
-
-      - name: Create Hugging Face secret
-        run: |
-          oc create secret generic hf-token-secret \
-            --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
-            -n default || echo "Secret exists"
-
-      - name: Create vLLM API key secret
-        run: |
-          oc create secret generic vllm-api-key-secret \
-            --from-literal=key="${{ secrets.VLLM_API_KEY }}" \
-            -n default || echo "Secret exists"
-
-      - name: Download tool calling config
-        run: |
-          curl -L -o tool_chat_template_llama3.2_json.jinja \
-          https://raw.githubusercontent.com/vllm-project/vllm/main/examples/tool_chat_template_llama3.2_json.jinja
-          
-          oc create configmap vllm-chat-template \
-          --from-file=tool_chat_template_llama3.2_json.jinja
+# - name: Download tool calling config
+#   run: |
+#     curl -L -o tool_chat_template_llama3.2_json.jinja \
+#     https://raw.githubusercontent.com/vllm-project/vllm/main/examples/tool_chat_template_llama3.2_json.jinja
+    
+#     oc create configmap vllm-chat-template \
+#     --from-file=tool_chat_template_llama3.2_json.jinja
 
 
-      - name: Deploy pod
-        run: |
-          ./e2e/RHOAI/pipeline.sh
+# - name: Deploy pod
+#   run: |
+#     ./e2e/RHOAI/pipeline.sh
 
-      - name: Expose service
-        run: |
-          ./e2e/RHOAI/scripts/expose-service.sh
+# - name: Expose service
+#   run: |
+#     ./e2e/RHOAI/scripts/expose-service.sh
 
-      - name: list files 3
-        run: |
-          ls
-          cat pod.env
-          oc get pods
+# - name: Call vLLM API
+#   run: |
+#     ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
 
-      - name: Call vLLM API
-        run: |
-          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
+# - name: Save vLLM URL
+#   run: |
+#     source pod.env
+#     echo "Using the computed URL: $KSVC_URL"
+#     echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
 
-      - name: Save vLLM URL
-        run: |
-          source pod.env
-          echo "Using the computed URL: $KSVC_URL"
-          echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
+# - uses: 1arp/create-a-file-action@0.4.5
+#   env: 
+#       KSVC_URL: ${{ env.KSVC_URL }}
+#       VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+#   with:
+#     path: '.'
+#     isAbsolutePath: false
+#     file: 'run.yaml'
+#     content: |
+#       version: 2
+#       image_name: rag-configuration-demo3
 
-      - uses: 1arp/create-a-file-action@0.4.5
-        env: 
-            KSVC_URL: ${{ env.KSVC_URL }}
-            VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
-        with:
-          path: '.'
-          isAbsolutePath: false
-          file: 'run.yaml'
-          content: |
-            version: 2
-            image_name: rag-configuration-demo3
+#       apis:
+#       - agents
+#       - inference
+#       - vector_io
+#       - tool_runtime
+#       - safety
 
-            apis:
-            - agents
-            - inference
-            - vector_io
-            - tool_runtime
-            - safety
+#       models:
+#       - model_id: meta-llama/Llama-3.2-1B-Instruct
+#         provider_id: vllm
+#         model_type: llm
+#         provider_model_id: null
+#       - model_id: sentence-transformers/all-mpnet-base-v2
+#         metadata:
+#             embedding_dimension: 768
+#         model_type: embedding
+#         provider_id: sentence-transformers
+#         provider_model_id: /Users/cpompeia/Documents/Dev/lightspeed-rag-content/embeddings_model
+        
+#       providers:
+#         inference:
+#         - provider_id: sentence-transformers
+#           provider_type: inline::sentence-transformers
+#           config: {}
+#         - provider_id: vllm
+#           provider_type: remote::vllm
+#           config:
+#             url: ${ KSVC_URL }/v1/
+#             api_token: ${ VLLM_API_KEY }
+#             tls_verify: false
+#             max_tokens: 1024
 
-            models:
-            - model_id: meta-llama/Llama-3.2-1B-Instruct
-              provider_id: vllm
-              model_type: llm
-              provider_model_id: null
-            - model_id: sentence-transformers/all-mpnet-base-v2
-              metadata:
-                  embedding_dimension: 768
-              model_type: embedding
-              provider_id: sentence-transformers
-              provider_model_id: /Users/cpompeia/Documents/Dev/lightspeed-rag-content/embeddings_model
-              
-            providers:
-              inference:
-              - provider_id: sentence-transformers
-                provider_type: inline::sentence-transformers
-                config: {}
-              - provider_id: vllm
-                provider_type: remote::vllm
-                config:
-                  url: ${ KSVC_URL }/v1/
-                  api_token: ${ VLLM_API_KEY }
-                  tls_verify: false
-                  max_tokens: 1024
+#         agents:
+#         - provider_id: meta-reference
+#           provider_type: inline::meta-reference
+#           config:
+#             persistence_store:
+#               type: sqlite
+#               db_path: .llama/distributions/ollama/agents_store.db
+#             responses_store:
+#               type: sqlite
+#               db_path: .llama/distributions/ollama/responses_store.db
 
-              agents:
-              - provider_id: meta-reference
-                provider_type: inline::meta-reference
-                config:
-                  persistence_store:
-                    type: sqlite
-                    db_path: .llama/distributions/ollama/agents_store.db
-                  responses_store:
-                    type: sqlite
-                    db_path: .llama/distributions/ollama/responses_store.db
+#         safety:
+#         - provider_id: llama-guard
+#           provider_type: inline::llama-guard
+#           config:
+#             excluded_categories: []
 
-              safety:
-              - provider_id: llama-guard
-                provider_type: inline::llama-guard
-                config:
-                  excluded_categories: []
+#         tool_runtime:
+#         - provider_id: rag-runtime
+#           provider_type: inline::rag-runtime
+#           config: {}
 
-              tool_runtime:
-              - provider_id: rag-runtime
-                provider_type: inline::rag-runtime
-                config: {}
-
-            tool_groups:
-            - provider_id: rag-runtime
-              toolgroup_id: builtin::rag
-              args: null
-              mcp_endpoint: null
+#       tool_groups:
+#       - provider_id: rag-runtime
+#         toolgroup_id: builtin::rag
+#         args: null
+#         mcp_endpoint: null
 
       # Run e2e test
       - name: Run service manually
@@ -290,7 +273,7 @@ jobs:
           docker compose up -d
           
           # Check for errors and show logs if any services failed
-          if docker compose ps | grep -E 'Exit|exited|stopped'; then
+          if docker compose ps | grep -E 'Exit|exited|stopped|Error'; then
             echo "Some services failed to start - showing logs:"
             docker compose logs
             exit 1
