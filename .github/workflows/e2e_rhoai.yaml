@@ -106,94 +106,98 @@ jobs:
       #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
       #     chmod 600 ~/.ssh/id_ed25519
 
-# - name: Download OpenShift installer
-#   run: |
-#     mkdir -p $HOME/bin
-#     curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
-#     tar -xzf openshift-install-linux.tar.gz
-#     rm openshift-install-linux.tar.gz
-#     mv openshift-install $HOME/bin/
-#     chmod +x $HOME/bin/openshift-install
+      - name: Mirror vllm image
+        run: |
+          oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
 
-#     echo "$HOME/bin" >> $GITHUB_PATH
+      - name: Download OpenShift installer
+        run: |
+          mkdir -p $HOME/bin
+          curl -L -o openshift-install-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz"
+          tar -xzf openshift-install-linux.tar.gz
+          rm openshift-install-linux.tar.gz
+          mv openshift-install $HOME/bin/
+          chmod +x $HOME/bin/openshift-install
 
-# - name: Verify OpenShift installer
-#   run: |
-#     if ! command -v openshift-install &> /dev/null
-#     then
-#       echo "❌ openshift-install not found. Installation failed."
-#       exit 1
-#     fi
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-#     echo "✅ openshift-install is installed."
-#     openshift-install version
+      - name: Verify OpenShift installer
+        run: |
+          if ! command -v openshift-install &> /dev/null
+          then
+            echo "❌ openshift-install not found. Installation failed."
+            exit 1
+          fi
 
-# - name: Install OpenShift client (oc)
-#   run: |
-#     curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
-#     tar -xzf openshift-client-linux.tar.gz
-#     rm openshift-client-linux.tar.gz
-#     mv oc kubectl $HOME/bin/
-#     chmod +x $HOME/bin/oc $HOME/bin/kubectl
-#     echo "$HOME/bin" >> $GITHUB_PATH
+          echo "✅ openshift-install is installed."
+          openshift-install version
 
-# - name: Verify OpenShift client installation
-#   run: |
-#     if ! command -v oc &> /dev/null
-#     then
-#       echo "❌ oc CLI not found. Installation failed."
-#       exit 1
-#     fi
+      - name: Install OpenShift client (oc)
+        run: |
+          curl -L -o openshift-client-linux.tar.gz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz"
+          tar -xzf openshift-client-linux.tar.gz
+          rm openshift-client-linux.tar.gz
+          mv oc kubectl $HOME/bin/
+          chmod +x $HOME/bin/oc $HOME/bin/kubectl
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-#     echo "✅ oc CLI is installed."
-#     oc version
+      - name: Verify OpenShift client installation
+        run: |
+          if ! command -v oc &> /dev/null
+          then
+            echo "❌ oc CLI not found. Installation failed."
+            exit 1
+          fi
 
-# - name: Deploy OpenShift cluster
-#   run: |
-#     ./e2e/RHOAI/deploy_openshift_aws.sh
+          echo "✅ oc CLI is installed."
+          oc version
 
-# - name: Set KUBECONFIG for subsequent steps
-#   run: |
-#     echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
+      - name: Deploy OpenShift cluster
+        run: |
+          ./e2e/RHOAI/deploy_openshift_aws.sh
 
-# - name: Create Hugging Face secret
-#   run: |
-#     oc create secret generic hf-token-secret \
-#       --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
-#       -n default || echo "Secret exists"
+      - name: Set KUBECONFIG for subsequent steps
+        run: |
+          echo "KUBECONFIG=$OPENSHIFT_WORKDIR/auth/kubeconfig" >> $GITHUB_ENV
 
-# - name: Create vLLM API key secret
-#   run: |
-#     oc create secret generic vllm-api-key-secret \
-#       --from-literal=key="${{ secrets.VLLM_API_KEY }}" \
-#       -n default || echo "Secret exists"
+      - name: Create Hugging Face secret
+        run: |
+          oc create secret generic hf-token-secret \
+            --from-literal=token="${{ secrets.HUGGING_FACE_HUB_TOKEN }}" \
+            -n default || echo "Secret exists"
 
-# - name: Download tool calling config
-#   run: |
-#     curl -L -o tool_chat_template_llama3.2_json.jinja \
-#     https://raw.githubusercontent.com/vllm-project/vllm/main/examples/tool_chat_template_llama3.2_json.jinja
-    
-#     oc create configmap vllm-chat-template \
-#     --from-file=tool_chat_template_llama3.2_json.jinja
+      - name: Create vLLM API key secret
+        run: |
+          oc create secret generic vllm-api-key-secret \
+            --from-literal=key="${{ secrets.VLLM_API_KEY }}" \
+            -n default || echo "Secret exists"
+
+      - name: Download tool calling config
+        run: |
+          curl -L -o tool_chat_template_llama3.2_json.jinja \
+          https://raw.githubusercontent.com/vllm-project/vllm/main/examples/tool_chat_template_llama3.2_json.jinja
+          
+          oc create configmap vllm-chat-template \
+          --from-file=tool_chat_template_llama3.2_json.jinja
 
 
-# - name: Deploy pod
-#   run: |
-#     ./e2e/RHOAI/pipeline.sh
+      - name: Deploy pod
+        run: |
+          ./e2e/RHOAI/pipeline.sh
 
-# - name: Expose service
-#   run: |
-#     ./e2e/RHOAI/scripts/expose-service.sh
+      - name: Expose service
+        run: |
+          ./e2e/RHOAI/scripts/expose-service.sh
 
-# - name: Call vLLM API
-#   run: |
-#     ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
+      - name: Call vLLM API
+        run: |
+          ./e2e/RHOAI/scripts/infer.sh "${{ secrets.VLLM_API_KEY }}"
 
-# - name: Save vLLM URL
-#   run: |
-#     source pod.env
-#     echo "Using the computed URL: $KSVC_URL"
-#     echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
+      - name: Save vLLM URL
+        run: |
+          source pod.env
+          echo "Using the computed URL: $KSVC_URL"
+          echo "KSVC_URL=$KSVC_URL" >> $GITHUB_ENV
 
       - uses: 1arp/create-a-file-action@0.4.5
         env: 
