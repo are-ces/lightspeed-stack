@@ -267,6 +267,12 @@ jobs:
               args: null
               mcp_endpoint: null
 
+      - name: list files
+        run: |
+          ls
+          cat lightspeed-stack.yaml
+          cat run.yaml
+
       # Run e2e test
       - name: Run service manually
         run: |          
