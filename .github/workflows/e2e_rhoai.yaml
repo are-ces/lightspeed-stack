@@ -106,10 +106,6 @@ jobs:
       #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
       #     chmod 600 ~/.ssh/id_ed25519
 
-      - name: Mirror vllm image
-        run: |
-          oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
-
       - name: Download OpenShift installer
         run: |
           mkdir -p $HOME/bin
@@ -151,6 +147,10 @@ jobs:
 
           echo "✅ oc CLI is installed."
           oc version
+
+      - name: Mirror vllm image
+        run: |
+          oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
 
       - name: Deploy OpenShift cluster
         run: |
