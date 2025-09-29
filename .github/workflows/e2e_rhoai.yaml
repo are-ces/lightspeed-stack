@@ -271,8 +271,6 @@ jobs:
         run: |          
           docker compose version
           docker compose up -d
-
-          docker compose ps
           
           # Check for errors and show logs if any services failed
           if docker compose ps | grep -E 'Exit|exited|stopped|Error'; then
@@ -309,4 +307,5 @@ jobs:
       - name: Destroy OpenShift cluster
         if: always()
         run: |
+          docker compose logs
           openshift-install destroy cluster --dir="$OPENSHIFT_WORKDIR"
