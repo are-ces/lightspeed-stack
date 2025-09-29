@@ -308,4 +308,5 @@ jobs:
       - name: Destroy OpenShift cluster
         if: always()
         run: |
+          docker compose logs
           openshift-install destroy cluster --dir="$OPENSHIFT_WORKDIR"
