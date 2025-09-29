@@ -19,6 +19,8 @@ jobs:
       VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      QUAY_ROBOT_NAME: ${{ secrets.QUAY_ROBOT_NAME }}
+      QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -148,19 +150,9 @@ jobs:
           echo "✅ oc CLI is installed."
           oc version
 
-      - name: Setup AWS
-        run: |
-          oc create secret docker-registry ecr-public-secret \
-            --docker-server=public.ecr.aws \
-            --docker-username=AWS \
-            --docker-password=$(aws ecr-public get-login-password) \
-            --docker-email=<your-email>
-          oc secrets link default ecr-public-secret --for=pull
-
-
-
       - name: Mirror vllm image
         run: |
+          docker login quay.io -u $QUAY_ROBOT_NAME -p $QUAY_ROBOT_TOKEN
           oc image mirror public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest quay.io/rh-ee-cpompeia/vllm-cpu:latest
 
       - name: Deploy OpenShift cluster
