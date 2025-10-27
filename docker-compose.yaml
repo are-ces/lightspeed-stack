@@ -17,6 +17,7 @@ services:
       - TAVILY_SEARCH_API_KEY=${TAVILY_SEARCH_API_KEY:-}
       - RHAIIS_URL=${RHAIIS_URL}
       - RHAIIS_API_KEY=${RHAIIS_API_KEY}
+      - LLAMA_STACK_LOGGING=all=debug
     networks:
       - lightspeednet
     healthcheck:
