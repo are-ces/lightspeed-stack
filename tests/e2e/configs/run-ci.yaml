@@ -147,10 +147,10 @@ models:
     provider_id: sentence-transformers
     provider_model_id: sentence-transformers/all-mpnet-base-v2 # Location of embedding model
     model_type: embedding
-  - model_id: gpt-4-turbo
+  - model_id: ${env.OPENAI_MODEL}
     provider_id: openai
     model_type: llm
-    provider_model_id: gpt-4-turbo
+    provider_model_id: ${env.OPENAI_MODEL}
 
 tool_groups:
   - toolgroup_id: builtin::rag
