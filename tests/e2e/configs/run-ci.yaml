@@ -76,6 +76,7 @@ providers:
       provider_type: remote::openai
       config:
         api_key: ${env.OPENAI_API_KEY}
+        temperature: 1
   post_training:
   - config:
       checkpoint_format: huggingface
