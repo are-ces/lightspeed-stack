@@ -26,13 +26,19 @@ metadata_store:
   db_path: /tmp/registry.db
   type: sqlite
 
-models: 
-- model_id: sentence-transformers/all-mpnet-base-v2
-  model_type: embedding
-  provider_id: sentence-transformers
-  provider_model_id: sentence-transformers/all-mpnet-base-v2
-  metadata:
-    embedding_dimension: 768
+registered_resources:
+  shields: []
+  models: 
+  - model_id: sentence-transformers/all-mpnet-base-v2
+    model_type: embedding
+    provider_id: sentence-transformers
+    provider_model_id: sentence-transformers/all-mpnet-base-v2
+    metadata:
+      embedding_dimension: 768
+  tool_groups:
+  - provider_id: rag-runtime
+    toolgroup_id: builtin::rag
+
 # - model_id: gpt-4o-mini
 #   provider_id: openai
 #   model_type: llm
@@ -90,6 +96,8 @@ providers:
     provider_type: remote::openai
     config:
       api_key: ${env.OPENAI_API_KEY}
+      allowed_models:
+        - "gpt-4o-mini"
   - config: {}
     provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
@@ -124,19 +132,19 @@ providers:
 scoring_fns: []
 server:
   port: 8321
-shields: []
-tool_groups:
-- provider_id: rag-runtime
-  toolgroup_id: builtin::rag
-vector_dbs: []
+vector_stores:
+  default_provider_id: faiss
+  default_embedding_model:
+    provider_id: sentence-transformers
+    model_id: nomic-ai/nomic-embed-text-v1.5
 storage:
   backends:
     kv_default:
       type: kv_sqlite
-      db_path: ${env.SQLITE_STORE_DIR:=~/.llama/distributions/starter}/kv_store.db
+      db_path: /tmp/kv_store.db
     sql_default:
       type: sql_sqlite
-      db_path: ${env.SQLITE_STORE_DIR:=~/.llama/distributions/starter}/sql_store.db
+      db_path: /tmp/sql_store.db
   stores:
     metadata:
       namespace: registry

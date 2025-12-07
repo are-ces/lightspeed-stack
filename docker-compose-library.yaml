@@ -12,6 +12,7 @@ services:
       # Mount both config files - lightspeed-stack.yaml should have library mode enabled
       - ./lightspeed-stack.yaml:/app-root/lightspeed-stack.yaml:Z
       - ./run.yaml:/app-root/run.yaml:Z
+      - ./tests/e2e/rag/kv_store.db:/tmp/kv_store.db
     environment:
       # LLM Provider API Keys
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -28,6 +29,7 @@ services:
       - RHEL_AI_MODEL=${RHEL_AI_MODEL:-}
       # Enable debug logging if needed
       - LLAMA_STACK_LOGGING=${LLAMA_STACK_LOGGING:-}
+      - HF_HOME=/tmp/hf
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/liveness"]
       interval: 10s   # how often to run the check
