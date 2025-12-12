@@ -55,7 +55,7 @@ The tables below summarize each provider category, containing the following atri
 | tgi | remote | `huggingface_hub`, `aiohttp` | ❌ |
 | together | remote | `together` | ❌ |
 | vertexai | remote | `litellm`, `google-cloud-aiplatform` | ❌ |
-| watsonx | remote | `ibm_watsonx_ai` | ❌ |
+| watsonx | remote | `ibm_watsonx_ai` | ✅ |
 
 Red Hat providers:
 
