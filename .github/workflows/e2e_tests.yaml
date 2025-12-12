@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         mode: ["server", "library"]
-        environment: ["ci", "azure"]
+        environment: ["ci", "azure", "watsonx"]
     
     name: "E2E: ${{ matrix.mode }} mode / ${{ matrix.environment }}"
     
