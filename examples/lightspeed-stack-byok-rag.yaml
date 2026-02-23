@@ -40,8 +40,26 @@ byok_rag:
     embedding_dimension: 1024
     vector_db_id: vector_byok_1
     db_path: /tmp/ocp.faiss
+    score_multiplier: 1.0  # Weight for this vector store's results
   - rag_id: knowledge_base
     rag_type: inline::faiss
     embedding_dimension: 384
     vector_db_id: vector_byok_2
     db_path: /tmp/kb.faiss
+    score_multiplier: 1.2  # Weight for this vector store's results
+
+# RAG configuration
+rag:
+  # Always RAG (inject context pre-query with RAG from Solr and BYOK vector stores)
+  always:
+    solr:
+      enabled: false
+      offline: false
+    # Supports weighted scoring
+    byok:
+      enabled: false
+  # Tool RAG (LLM can call file_search tool during generation)
+  tool:
+    byok:
+      # Default is true for backward compatibility
+      enabled: false
