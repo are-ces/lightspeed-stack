@@ -30,6 +30,8 @@ services:
         condition: service_healthy
       mock-mcp:
         condition: service_healthy
+      mock-tls-inference:
+        condition: service_healthy
     networks:
       - lightspeednet
     volumes:
@@ -40,6 +42,7 @@ services:
       - ./tests/e2e/rag:/opt/app-root/src/.llama/storage/rag:Z
       - ./tests/e2e/secrets/mcp-token:/tmp/mcp-token:ro
       - ./tests/e2e/secrets/invalid-mcp-token:/tmp/invalid-mcp-token:ro
+      - mock-tls-certs:/certs:ro
     environment:
       # LLM Provider API Keys
       - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
@@ -113,7 +116,31 @@ services:
       retries: 3
       start_period: 2s
 
+  # Mock TLS inference server for TLS E2E tests
+  mock-tls-inference:
+    build:
+      context: ./tests/e2e/mock_tls_inference_server
+      dockerfile: Dockerfile
+    container_name: mock-tls-inference
+    ports:
+      - "8443:8443"
+      - "8444:8444"
+      - "8445:8445"
+    networks:
+      - lightspeednet
+    volumes:
+      - mock-tls-certs:/certs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,ssl;c=ssl.create_default_context();c.check_hostname=False;c.verify_mode=ssl.CERT_NONE;urllib.request.urlopen('https://localhost:8443/health',context=c)"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
 
 networks:
   lightspeednet:
     driver: bridge
+
+volumes:
+  mock-tls-certs:
