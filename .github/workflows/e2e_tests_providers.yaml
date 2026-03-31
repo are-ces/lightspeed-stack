@@ -1,9 +1,8 @@
 # .github/workflows/e2e_tests.yml
 name: E2E Inference Provider Tests
 
-on: 
-  schedule:
-    - cron: "0 0 * * *"  # Runs once a day at midnight UTC
+on:
+  push:
   workflow_dispatch:
 
 jobs:

@@ -118,3 +118,5 @@ services:
 networks:
   lightspeednet:
     driver: bridge
+
+volumes: {}
