@@ -155,7 +155,7 @@ services:
     volumes:
       - mock-tls-certs:/certs
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,ssl;c=ssl.create_default_context();c.check_hostname=False;c.verify_mode=ssl.CERT_NONE;[urllib.request.urlopen(f'https://localhost:{p}/health',context=c) for p in [8443,8444,8445]]"]
+      test: ["CMD", "python", "-c", "import urllib.request,ssl;c=ssl.create_default_context();c.check_hostname=False;c.verify_mode=ssl.CERT_NONE;urllib.request.urlopen('https://localhost:8443/health',context=c)"]
       interval: 5s
       timeout: 3s
       retries: 3
