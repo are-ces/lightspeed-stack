@@ -14,7 +14,6 @@ Certificates are generated on-the-fly using trustme at server startup.
 import datetime
 import json
 import ssl
-import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +25,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import CertificateBuilder, random_serial_number
 
 MODEL_ID = "mock-tls-model"
+TLS_PORT = 8443
+MTLS_PORT = 8444
+HOSTNAME_MISMATCH_PORT = 8445
 
 
 class OpenAIHandler(BaseHTTPRequestHandler):
@@ -199,9 +201,6 @@ def main() -> None:
     Generates certificates on-the-fly using trustme and exports the CA cert
     to /certs/ca.crt and client cert to /certs/client.* for use by tests.
     """
-    tls_port = int(sys.argv[1]) if len(sys.argv) > 1 else 8443
-    mtls_port = int(sys.argv[2]) if len(sys.argv) > 2 else 8444
-
     print("=" * 60)
     print("Generating TLS certificates with trustme...")
     print("=" * 60)
@@ -262,20 +261,18 @@ def main() -> None:
     print("Starting servers...")
     print("=" * 60)
 
-    hostname_mismatch_port = int(sys.argv[3]) if len(sys.argv) > 3 else 8445
-
     # Create TLS server (no client cert required)
-    tls_server = ThreadingHTTPServer(("", tls_port), OpenAIHandler)
+    tls_server = ThreadingHTTPServer(("", TLS_PORT), OpenAIHandler)
     tls_ctx = _make_tls_context(ca, server_cert, require_client_cert=False)
     tls_server.socket = tls_ctx.wrap_socket(tls_server.socket, server_side=True)
 
     # Create mTLS server (client cert required)
-    mtls_server = ThreadingHTTPServer(("", mtls_port), OpenAIHandler)
+    mtls_server = ThreadingHTTPServer(("", MTLS_PORT), OpenAIHandler)
     mtls_ctx = _make_tls_context(ca, server_cert, require_client_cert=True)
     mtls_server.socket = mtls_ctx.wrap_socket(mtls_server.socket, server_side=True)
 
     # Create hostname-mismatch TLS server (cert SAN ≠ connecting hostname)
-    mismatch_server = ThreadingHTTPServer(("", hostname_mismatch_port), OpenAIHandler)
+    mismatch_server = ThreadingHTTPServer(("", HOSTNAME_MISMATCH_PORT), OpenAIHandler)
     mismatch_ctx = _make_tls_context(
         ca, hostname_mismatch_cert, require_client_cert=False
     )
@@ -286,30 +283,25 @@ def main() -> None:
     print("=" * 60)
     print("Mock TLS Inference Server")
     print("=" * 60)
-    print(f"  TLS      : https://localhost:{tls_port}  (no client cert)")
-    print(f"  mTLS     : https://localhost:{mtls_port}  (client cert required)")
+    print(f"  TLS      : https://localhost:{TLS_PORT}  (no client cert)")
+    print(f"  mTLS     : https://localhost:{MTLS_PORT}  (client cert required)")
     print(
-        f"  Mismatch : https://localhost:{hostname_mismatch_port}"
+        f"  Mismatch : https://localhost:{HOSTNAME_MISMATCH_PORT}"
         "  (hostname-mismatch cert)"
     )
     print(f"  Model: {MODEL_ID}")
     print("=" * 60)
 
     for srv, label in [
-        (tls_server, f"TLS  :{tls_port}"),
-        (mtls_server, f"mTLS :{mtls_port}"),
-        (mismatch_server, f"Mismatch :{hostname_mismatch_port}"),
+        (tls_server, f"TLS  :{TLS_PORT}"),
+        (mtls_server, f"mTLS :{MTLS_PORT}"),
+        (mismatch_server, f"Mismatch :{HOSTNAME_MISMATCH_PORT}"),
     ]:
         t = threading.Thread(target=_run_server, args=(srv, label), daemon=True)
         t.start()
 
-    try:
-        while True:
-            time.sleep(3600)
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-        tls_server.shutdown()
-        mtls_server.shutdown()
+    # Keep main thread alive (daemon threads run until container stops)
+    threading.Event().wait()
 
 
 if __name__ == "__main__":
