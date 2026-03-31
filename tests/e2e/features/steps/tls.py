@@ -21,7 +21,6 @@ from tests.e2e.features.steps.proxy import (
     _write_config,
 )
 
-
 _TLS_PROVIDER_BASE: dict[str, Any] = {
     "provider_id": "tls-openai",
     "provider_type": "remote::openai",
