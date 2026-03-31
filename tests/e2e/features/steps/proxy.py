@@ -137,22 +137,9 @@ def restore_if_modified(context: Context) -> None:
     _stop_proxy(context, "tunnel_proxy", "proxy_loop")
     _stop_proxy(context, "interception_proxy", "interception_proxy_loop")
 
-    # Check for backups from both proxy and TLS scenarios
-    _LLAMA_STACK_TLS_BACKUP = "run.yaml.tls-backup"
-    backup_to_restore = None
     if os.path.exists(_LLAMA_STACK_CONFIG_BACKUP):
-        backup_to_restore = _LLAMA_STACK_CONFIG_BACKUP
-    elif os.path.exists(_LLAMA_STACK_TLS_BACKUP):
-        backup_to_restore = _LLAMA_STACK_TLS_BACKUP
-
-    if backup_to_restore:
-        print(f"Restoring original Llama Stack config from {backup_to_restore}...")
-        shutil.copy(backup_to_restore, _LLAMA_STACK_CONFIG)
-        os.remove(backup_to_restore)
-        # Clean up the other backup too if it exists
-        for other_backup in [_LLAMA_STACK_CONFIG_BACKUP, _LLAMA_STACK_TLS_BACKUP]:
-            if other_backup != backup_to_restore and os.path.exists(other_backup):
-                os.remove(other_backup)
+        print(f"Restoring original Llama Stack config from {_LLAMA_STACK_CONFIG_BACKUP}...")
+        shutil.move(_LLAMA_STACK_CONFIG_BACKUP, _LLAMA_STACK_CONFIG)
         restart_container("llama-stack")
         restart_container("lightspeed-stack")
 

@@ -552,7 +552,9 @@ def after_feature(context: Context, feature: Feature) -> None:
         restart_container("lightspeed-stack")
         remove_config_backup(context.default_config_backup)
 
-    # Restore Lightspeed Stack config if the generic configure_service step switched it
+    # Restore Lightspeed Stack config if the generic configure_service step switched it.
+    # This cleanup intentionally runs for any feature (not tag-gated) - any feature that
+    # leaves a backup file will trigger config restoration and container restarts.
     backup_path = "lightspeed-stack.yaml.backup"
     if os.path.exists(backup_path):
         switch_config(backup_path)
