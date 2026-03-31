@@ -2,11 +2,8 @@
 name: E2E Inference Provider Tests
 
 on:
-  schedule:
-    - cron: "0 0 * * *"  # Runs once a day at midnight UTC
+  push:
   workflow_dispatch:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
 
 jobs:
   e2e_tests:

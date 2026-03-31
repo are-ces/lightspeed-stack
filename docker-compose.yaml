@@ -150,10 +150,6 @@ services:
       context: ./tests/e2e/mock_tls_inference_server
       dockerfile: Dockerfile
     container_name: mock-tls-inference
-    ports:
-      - "8443:8443"
-      - "8444:8444"
-      - "8445:8445"
     networks:
       - lightspeednet
     volumes:
