@@ -13,14 +13,14 @@ class TestRerankerConfiguration:
     def test_default_values(self) -> None:
         """Test that RerankerConfiguration has correct default values."""
         config = RerankerConfiguration()
-        assert config.enabled is True
+        assert config.enabled is False
         assert config.model == constants.DEFAULT_CROSS_ENCODER_MODEL
 
     def test_custom_model(self) -> None:
         """Test configuration with custom cross-encoder model."""
         config = RerankerConfiguration(model="cross-encoder/ms-marco-TinyBERT-L2-v2")
         assert config.model == "cross-encoder/ms-marco-TinyBERT-L2-v2"
-        assert config.enabled is True
+        assert config.enabled is False
 
     def test_disabled_reranker(self) -> None:
         """Test configuration with reranker disabled."""

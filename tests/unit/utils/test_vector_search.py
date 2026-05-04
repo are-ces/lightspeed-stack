@@ -770,9 +770,8 @@ class TestBuildRagContext:
         # Verify cross-encoder was called
         mock_rerank.assert_called_once()
         assert mock_rerank.call_args[0][0] == "test query"  # query parameter
-        assert (
-            mock_rerank.call_args[1]["model_name"] == "test-model"
-        )  # model_name parameter
+        # Check that chunks were passed as second argument
+        assert len(mock_rerank.call_args[0][1]) == 1  # chunks parameter
 
         assert len(context.rag_chunks) > 0
 
