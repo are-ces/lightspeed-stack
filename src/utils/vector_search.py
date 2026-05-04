@@ -30,9 +30,10 @@ logger = get_logger(__name__)
 # Cache models by name to avoid reloading the same model multiple times.
 # Not a constant; pylint invalid-name is disabled for this module-level singleton.
 _cross_encoder_models: dict[str, Any] = {}  # pylint: disable=invalid-name
+_cross_encoder_load_lock = asyncio.Lock()
 
 
-def _get_cross_encoder(model_name: str) -> Any:
+async def _get_cross_encoder(model_name: str) -> Any:
     """Return the lazy-loaded cross-encoder model for reranking.
 
     Args:
@@ -41,9 +42,19 @@ def _get_cross_encoder(model_name: str) -> Any:
     Returns:
         Loaded CrossEncoder model instance, or None if loading fails.
     """
-    if model_name not in _cross_encoder_models:
+    # Check if reranking is enabled before attempting to load the model
+    if not configuration.reranker.enabled:
+        logger.debug("Reranker is disabled, not loading cross-encoder model")
+        return None
+
+    if model_name in _cross_encoder_models:
+        return _cross_encoder_models[model_name]
+    async with _cross_encoder_load_lock:
+        if model_name in _cross_encoder_models:
+            return _cross_encoder_models[model_name]
         try:
-            _cross_encoder_models[model_name] = CrossEncoder(model_name)
+            model = await asyncio.to_thread(CrossEncoder, model_name)
+            _cross_encoder_models[model_name] = model
             logger.info("Loaded cross-encoder for RAG reranking: %s", model_name)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(
@@ -58,7 +69,6 @@ async def _rerank_chunks_with_cross_encoder(
     query: str,
     chunks: list[RAGChunk],
     top_k: int,
-    model_name: str = "cross-encoder/ms-marco-MiniLM-L6-v2",
 ) -> list[RAGChunk]:
     """Rerank chunks using configurable cross-encoder model.
 
@@ -66,7 +76,6 @@ async def _rerank_chunks_with_cross_encoder(
         query: The search query
         chunks: RAG chunks to rerank (should contain original weighted scores)
         top_k: Number of top chunks to return
-        model_name: Cross-encoder model name to use
 
     Returns:
         Top top_k chunks sorted by combined cross-encoder and weighted score (descending)
@@ -76,7 +85,8 @@ async def _rerank_chunks_with_cross_encoder(
 
     try:
         # Get the cached cross-encoder model
-        model = _get_cross_encoder(model_name)
+        model_name = constants.DEFAULT_CROSS_ENCODER_MODEL
+        model = await _get_cross_encoder(model_name)
         if model is None:
             raise RuntimeError(f"Failed to load cross-encoder model: {model_name}")
 
@@ -808,10 +818,6 @@ async def build_rag_context(  # pylint: disable=too-many-locals,too-many-branche
 
     # Merge: combine and sort by score, keep top 2*BYOK_RAG_MAX_CHUNKS
     merged = byok_chunks + solr_chunks
-    merged.sort(
-        key=lambda c: c.score if c.score is not None else float("-inf"),
-        reverse=True,
-    )
     merged = merged[:pool_size]
 
     # Rerank full pool with cross-encoder if enabled; boost BYOK then take top_k
@@ -821,9 +827,7 @@ async def build_rag_context(  # pylint: disable=too-many-locals,too-many-branche
             len(merged),
             configuration.reranker.model,
         )
-        reranked = await _rerank_chunks_with_cross_encoder(
-            query, merged, pool_size, model_name=configuration.reranker.model
-        )
+        reranked = await _rerank_chunks_with_cross_encoder(query, merged, pool_size)
         context_chunks = _apply_byok_rerank_boost(reranked)[:top_k]
         logger.info(
             "Reranker completed: returned %d top chunks after BYOK boost",

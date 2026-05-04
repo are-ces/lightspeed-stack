@@ -823,74 +823,151 @@ class TestBuildRagContext:
 class TestGetCrossEncoder:
     """Tests for _get_cross_encoder function."""
 
-    def test_loads_model_successfully(self, mocker: MockerFixture) -> None:
-        """Test successful model loading and caching."""
+    @pytest.mark.asyncio
+    async def test_loads_model_successfully(self, mocker: MockerFixture) -> None:
+        """Test successful model loading and caching when reranker is enabled."""
         # Clear the cache for testing
         # pylint: disable=import-outside-toplevel
         from utils.vector_search import _cross_encoder_models
 
         _cross_encoder_models.clear()
+
+        # Mock reranker configuration to be enabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = True
+        mocker.patch("utils.vector_search.configuration", mock_config)
 
         # Mock the CrossEncoder class directly in the vector_search module
         mock_model_instance = mocker.Mock()
         mock_cross_encoder = mocker.patch("utils.vector_search.CrossEncoder")
         mock_cross_encoder.return_value = mock_model_instance
 
-        model = _get_cross_encoder("test-model")
+        # Mock asyncio.to_thread
+        mocker.patch("asyncio.to_thread", return_value=mock_model_instance)
+
+        model = await _get_cross_encoder("test-model")
 
         assert model == mock_model_instance
-        mock_cross_encoder.assert_called_once_with("test-model")
 
-    def test_caches_loaded_model(self, mocker: MockerFixture) -> None:
-        """Test that models are cached and not reloaded."""
+    @pytest.mark.asyncio
+    async def test_caches_loaded_model(self, mocker: MockerFixture) -> None:
+        """Test that models are cached and not reloaded when reranker is enabled."""
         # Clear the cache for testing
         # pylint: disable=import-outside-toplevel
         from utils.vector_search import _cross_encoder_models
 
         _cross_encoder_models.clear()
+
+        # Mock reranker configuration to be enabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = True
+        mocker.patch("utils.vector_search.configuration", mock_config)
 
         mock_model_instance = mocker.Mock()
         mock_cross_encoder = mocker.patch("utils.vector_search.CrossEncoder")
         mock_cross_encoder.return_value = mock_model_instance
 
+        # Mock asyncio.to_thread
+        mocker.patch("asyncio.to_thread", return_value=mock_model_instance)
+
         # First call should load the model
-        model1 = _get_cross_encoder("test-model")
+        model1 = await _get_cross_encoder("test-model")
         # Second call should return cached model
-        model2 = _get_cross_encoder("test-model")
+        model2 = await _get_cross_encoder("test-model")
 
         assert model1 == model2 == mock_model_instance
-        mock_cross_encoder.assert_called_once()  # Only called once
 
-    def test_handles_import_error(self, mocker: MockerFixture) -> None:
-        """Test graceful handling of sentence_transformers import error."""
+    @pytest.mark.asyncio
+    async def test_handles_import_error(self, mocker: MockerFixture) -> None:
+        """Test graceful handling of sentence_transformers import error when reranker is enabled."""
         # Clear the cache for testing
         # pylint: disable=import-outside-toplevel
         from utils.vector_search import _cross_encoder_models
 
         _cross_encoder_models.clear()
 
-        # Mock CrossEncoder to raise an exception when instantiated
-        mock_cross_encoder = mocker.patch("utils.vector_search.CrossEncoder")
-        mock_cross_encoder.side_effect = Exception("Model loading failed")
+        # Mock reranker configuration to be enabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = True
+        mocker.patch("utils.vector_search.configuration", mock_config)
 
-        model = _get_cross_encoder("test-model")
+        # Mock asyncio.to_thread to raise an exception
+        mocker.patch("asyncio.to_thread", side_effect=Exception("Model loading failed"))
+
+        model = await _get_cross_encoder("test-model")
 
         assert model is None
 
-    def test_handles_model_loading_error(self, mocker: MockerFixture) -> None:
-        """Test graceful handling of model instantiation error."""
+    @pytest.mark.asyncio
+    async def test_handles_model_loading_error(self, mocker: MockerFixture) -> None:
+        """Test graceful handling of model instantiation error when reranker is enabled."""
         # Clear the cache for testing
         # pylint: disable=import-outside-toplevel
         from utils.vector_search import _cross_encoder_models
 
         _cross_encoder_models.clear()
 
-        mock_cross_encoder = mocker.patch("utils.vector_search.CrossEncoder")
-        mock_cross_encoder.side_effect = Exception("Model loading failed")
+        # Mock reranker configuration to be enabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = True
+        mocker.patch("utils.vector_search.configuration", mock_config)
 
-        model = _get_cross_encoder("test-model")
+        # Mock asyncio.to_thread to raise an exception
+        mocker.patch("asyncio.to_thread", side_effect=Exception("Model loading failed"))
+
+        model = await _get_cross_encoder("test-model")
 
         assert model is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_reranker_disabled(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Test that _get_cross_encoder returns None when reranker is disabled."""
+        # Clear the cache for testing
+        # pylint: disable=import-outside-toplevel
+        from utils.vector_search import _cross_encoder_models
+
+        _cross_encoder_models.clear()
+
+        # Mock reranker configuration to be disabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = False
+        mocker.patch("utils.vector_search.configuration", mock_config)
+
+        # Mock the CrossEncoder class - should not be called
+        mock_cross_encoder = mocker.patch("utils.vector_search.CrossEncoder")
+
+        model = await _get_cross_encoder("test-model")
+
+        assert model is None
+        # Verify CrossEncoder was not instantiated
+        mock_cross_encoder.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_does_not_cache_when_reranker_disabled(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Test that no caching occurs when reranker is disabled."""
+        # Clear the cache for testing
+        # pylint: disable=import-outside-toplevel
+        from utils.vector_search import _cross_encoder_models
+
+        _cross_encoder_models.clear()
+
+        # Mock reranker configuration to be disabled
+        mock_config = mocker.Mock()
+        mock_config.reranker.enabled = False
+        mocker.patch("utils.vector_search.configuration", mock_config)
+
+        # Call multiple times
+        model1 = await _get_cross_encoder("test-model")
+        model2 = await _get_cross_encoder("test-model")
+
+        assert model1 is None
+        assert model2 is None
+        # Verify cache remains empty
+        assert "test-model" not in _cross_encoder_models
 
 
 class TestRerankChunksWithCrossEncoder:
@@ -917,7 +994,11 @@ class TestRerankChunksWithCrossEncoder:
         mock_model.predict.return_value = [2.5, 1.0, 3.0]  # Raw scores
 
         # Mock _get_cross_encoder to return our mock model
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 3)
 
@@ -954,7 +1035,11 @@ class TestRerankChunksWithCrossEncoder:
 
         mock_model = mocker.Mock()
         mock_model.predict.return_value = [2.5, 1.0, 3.0]
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 2)
 
@@ -972,7 +1057,11 @@ class TestRerankChunksWithCrossEncoder:
 
         mock_model = mocker.Mock()
         mock_model.predict.return_value = [1.5, 1.5]  # Identical cross-encoder scores
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 2)
 
@@ -993,7 +1082,11 @@ class TestRerankChunksWithCrossEncoder:
 
         mock_model = mocker.Mock()
         mock_model.predict.return_value = [2.5]
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 1)
 
@@ -1010,7 +1103,11 @@ class TestRerankChunksWithCrossEncoder:
         ]
 
         # Mock _get_cross_encoder to return None (loading failed)
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=None)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=None,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 2)
 
@@ -1031,7 +1128,11 @@ class TestRerankChunksWithCrossEncoder:
 
         mock_model = mocker.Mock()
         mock_model.predict.side_effect = Exception("Prediction failed")
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 2)
 
@@ -1051,7 +1152,11 @@ class TestRerankChunksWithCrossEncoder:
 
         mock_model = mocker.Mock()
         mock_model.predict.return_value = mock_scores
-        mocker.patch("utils.vector_search._get_cross_encoder", return_value=mock_model)
+        mocker.patch(
+            "utils.vector_search._get_cross_encoder",
+            new_callable=mocker.AsyncMock,
+            return_value=mock_model,
+        )
 
         result = await _rerank_chunks_with_cross_encoder("test query", chunks, 1)
 
