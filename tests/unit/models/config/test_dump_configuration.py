@@ -224,7 +224,7 @@ def test_dump_configuration(tmp_path: Path) -> None:
             "splunk": None,
             "deployment_environment": "development",
             "reranker": {
-                "enabled": True,
+                "enabled": False,
                 "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
             },
         }
@@ -587,7 +587,7 @@ def test_dump_configuration_with_quota_limiters(tmp_path: Path) -> None:
             "splunk": None,
             "deployment_environment": "development",
             "reranker": {
-                "enabled": True,
+                "enabled": False,
                 "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
             },
         }
@@ -826,7 +826,7 @@ def test_dump_configuration_with_quota_limiters_different_values(
             "splunk": None,
             "deployment_environment": "development",
             "reranker": {
-                "enabled": True,
+                "enabled": False,
                 "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
             },
         }
@@ -1040,7 +1040,7 @@ def test_dump_configuration_byok(tmp_path: Path) -> None:
             "splunk": None,
             "deployment_environment": "development",
             "reranker": {
-                "enabled": True,
+                "enabled": False,
                 "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
             },
         }
@@ -1239,7 +1239,7 @@ def test_dump_configuration_pg_namespace(tmp_path: Path) -> None:
             "splunk": None,
             "deployment_environment": "development",
             "reranker": {
-                "enabled": True,
+                "enabled": False,
                 "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
             },
         }
