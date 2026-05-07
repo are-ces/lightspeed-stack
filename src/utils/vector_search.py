@@ -14,8 +14,6 @@ from llama_stack_api.openai_responses import (
 )
 from llama_stack_client import AsyncLlamaStackClient
 from pydantic import AnyUrl
-from sentence_transformers import CrossEncoder
-
 import constants
 from configuration import configuration
 from log import get_logger
@@ -53,6 +51,8 @@ async def _get_cross_encoder(model_name: str) -> Any:
         if model_name in _cross_encoder_models:
             return _cross_encoder_models[model_name]
         try:
+            from sentence_transformers import CrossEncoder  # lazy: avoids torch import at startup
+
             model = await asyncio.to_thread(CrossEncoder, model_name)
             _cross_encoder_models[model_name] = model
             logger.info("Loaded cross-encoder for RAG reranking: %s", model_name)

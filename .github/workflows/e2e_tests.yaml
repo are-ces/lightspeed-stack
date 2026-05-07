@@ -169,23 +169,20 @@ jobs:
       - name: Wait for services
         run: |
           echo "Waiting for services to be healthy..."
-          MAX_RETRIES=18
-          RETRY_INTERVAL=5
-          for i in $(seq 1 $MAX_RETRIES); do
-            if curl -sf http://localhost:8080/v1/models > /dev/null 2>&1; then
-              echo "Service is ready (attempt $i)"
-              exit 0
+          sleep 20
+
+      - name: Quick connectivity test
+        run: |
+          echo "Testing basic connectivity before full test suite..."
+          curl -f http://localhost:8080/v1/models || {
+            echo "❌ Basic connectivity failed - showing logs"
+            if [ "${{ matrix.mode }}" == "server" ]; then
+              docker compose logs --tail=30
+            else
+              docker compose -f docker-compose-library.yaml logs --tail=30
             fi
-            echo "Attempt $i/$MAX_RETRIES - service not ready, retrying in ${RETRY_INTERVAL}s..."
-            sleep $RETRY_INTERVAL
-          done
-          echo "❌ Service failed to become ready after $((MAX_RETRIES * RETRY_INTERVAL))s"
-          if [ "${{ matrix.mode }}" == "server" ]; then
-            docker compose logs
-          else
-            docker compose -f docker-compose-library.yaml logs
-          fi
-          exit 1
+            exit 1
+          }
 
       - name: Run e2e tests
         env:
