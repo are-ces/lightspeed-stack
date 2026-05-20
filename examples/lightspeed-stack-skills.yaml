@@ -1,0 +1,32 @@
+name: Lightspeed Core Service (LCS)
+service:
+  host: localhost
+  port: 8080
+  auth_enabled: false
+  workers: 1
+  color_log: true
+  access_log: true
+llama_stack:
+  use_as_library_client: false
+  url: http://localhost:8321
+  api_key: xyzzy
+user_data_collection:
+  feedback_enabled: true
+  feedback_storage: "/tmp/data/feedback"
+  transcripts_enabled: true
+  transcripts_storage: "/tmp/data/transcripts"
+authentication:
+  module: "noop"
+# Agent Skills configuration
+# Skills provide domain-specific instructions that the LLM can load on demand.
+# Each path points to either:
+#   - A directory containing a SKILL.md file (single skill)
+#   - A directory containing subdirectories with SKILL.md files (multiple skills)
+skills:
+  paths:
+    - "/var/skills/"  # Directory containing skill subdirectories
+# Alternative: specify individual skill paths for fine-grained control
+# skills:
+#   paths:
+#     - "/var/skills/openshift-troubleshooting/"
+#     - "/var/skills/code-review/"
