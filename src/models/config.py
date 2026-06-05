@@ -1810,10 +1810,10 @@ class RagStore(ConfigurationBase):
         description="Vector database identification.",
     )
 
-    db_path: str = Field(
-        ...,
+    db_path: Optional[str] = Field(
+        default=None,
         title="DB path",
-        description="Path to RAG database.",
+        description="Path to RAG database. Required for faiss backend.",
     )
 
     score_multiplier: float = Field(
@@ -1824,6 +1824,60 @@ class RagStore(ConfigurationBase):
         "Used to weight results when querying multiple knowledge sources. "
         "Values > 1 boost this store's results; values < 1 reduce them.",
     )
+
+    host: Optional[str] = Field(
+        default=None,
+        title="PostgreSQL host",
+        description="PostgreSQL host for pgvector backend. "
+        "Defaults to ${env.POSTGRES_HOST} when backend is pgvector.",
+    )
+
+    port: Optional[str] = Field(
+        default=None,
+        title="PostgreSQL port",
+        description="PostgreSQL port for pgvector backend. "
+        "Defaults to ${env.POSTGRES_PORT} when backend is pgvector.",
+    )
+
+    db: Optional[str] = Field(
+        default=None,
+        title="PostgreSQL database",
+        description="PostgreSQL database name for pgvector backend. "
+        "Defaults to ${env.POSTGRES_DATABASE} when backend is pgvector.",
+    )
+
+    user: Optional[str] = Field(
+        default=None,
+        title="PostgreSQL user",
+        description="PostgreSQL user for pgvector backend. "
+        "Defaults to ${env.POSTGRES_USER} when backend is pgvector.",
+    )
+
+    password: Optional[str] = Field(
+        default=None,
+        title="PostgreSQL password",
+        description="PostgreSQL password for pgvector backend. "
+        "Defaults to ${env.POSTGRES_PASSWORD} when backend is pgvector.",
+    )
+
+    @model_validator(mode="after")
+    def validate_backend_fields(self) -> Self:
+        """Validate and populate backend-specific fields."""
+        if self.backend == "faiss":
+            if not self.db_path:
+                raise ValueError("db_path is required when backend is 'faiss'")
+        elif self.backend == "pgvector":
+            pgvector_defaults = {
+                "host": "${env.POSTGRES_HOST}",
+                "port": "${env.POSTGRES_PORT}",
+                "db": "${env.POSTGRES_DATABASE}",
+                "user": "${env.POSTGRES_USER}",
+                "password": "${env.POSTGRES_PASSWORD}",
+            }
+            for field_name, default_value in pgvector_defaults.items():
+                if getattr(self, field_name) is None:
+                    object.__setattr__(self, field_name, default_value)
+        return self
 
 
 class QuotaLimiterConfiguration(ConfigurationBase):

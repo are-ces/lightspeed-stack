@@ -170,7 +170,7 @@ CACHE_TYPE_NOOP: Final[str] = "noop"
 
 # BYOK RAG
 # Backends that have enrichment support in llama_stack_configuration.py
-SUPPORTED_RAG_BACKENDS: Final[frozenset[str]] = frozenset({"faiss"})
+SUPPORTED_RAG_BACKENDS: Final[frozenset[str]] = frozenset({"faiss", "pgvector"})
 
 # Default RAG backend for bring-your-own-knowledge RAG configurations
 DEFAULT_RAG_BACKEND: Final[str] = "faiss"

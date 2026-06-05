@@ -312,27 +312,28 @@ byok_rag:
 ### 2. pgvector (PostgreSQL)
 - **Type**: PostgreSQL with pgvector extension
 - **Best for**: Large-scale deployments, shared knowledge bases
-- **Configuration**: `remote::pgvector`
+- **Configuration**: `backend: pgvector`
 - **Requirements**: PostgreSQL with pgvector extension
 
-> [!NOTE]
-> pgvector is not yet supported via `byok_rag` in `lightspeed-stack.yaml` (see [LCORE-2437](https://redhat.atlassian.net/browse/LCORE-2437)).
-> It must be configured directly in the `run.yaml` configuration file.
-
 ```yaml
-vector_io:
-- provider_id: pgvector-knowledge
-  provider_type: remote::pgvector
-  config:
-    host: localhost
-    port: 5432
-    db: knowledge_db
-    user: lightspeed_user
-    password: ${env.POSTGRES_PASSWORD}
-    kvstore:
-      type: sqlite
-      db_path: .llama/distributions/pgvector/registry.db
+rag:
+  byok:
+    stores:
+      - rag_id: pgvector-knowledge
+        backend: pgvector
+        embedding_model: sentence-transformers/all-mpnet-base-v2
+        embedding_dimension: 768
+        vector_db_id: rhdocs
+        host: ${env.POSTGRES_HOST}
+        port: ${env.POSTGRES_PORT}
+        db: ${env.POSTGRES_DATABASE}
+        user: ${env.POSTGRES_USER}
+        password: ${env.POSTGRES_PASSWORD}
 ```
+
+> [!NOTE]
+> Connection fields (`host`, `port`, `db`, `user`, `password`) default to
+> `${env.POSTGRES_*}` environment variable references when omitted.
 
 **pgvector Table Schema:**
 - `id` (text): UUID identifier of the chunk
@@ -369,15 +370,9 @@ rag:
     - company-docs
 ```
 
-### Example 2: Multiple Knowledge Sources with pgvector
+### Example 2: Multiple Knowledge Sources (FAISS + pgvector)
 
-A configuration combining a local FAISS store (via `byok_rag`) with a remote pgvector store (configured directly in the `run.yaml` configuration file):
-
-> [!NOTE]
-> pgvector is not yet supported via `byok_rag` in `lightspeed-stack.yaml` (see [LCORE-2437](https://redhat.atlassian.net/browse/LCORE-2437)).
-> The pgvector provider must be configured directly in the `run.yaml` configuration file.
-
-**`lightspeed-stack.yaml`** — FAISS store and RAG strategy:
+A configuration combining a local FAISS store with a remote pgvector store:
 
 ```yaml
 name: Lightspeed Core Service (LCS)
@@ -386,42 +381,40 @@ service:
   port: 8080
   auth_enabled: false
 
-byok_rag:
-  - rag_id: local-docs
-    rag_type: inline::faiss
-    embedding_model: sentence-transformers/all-mpnet-base-v2
-    embedding_dimension: 768
-    vector_db_id: vs_e9d8c7b6-43af-4b2d-8e1f-0a9b8c7d6e5f
-    db_path: /data/vector_dbs/local/faiss_store.db
-    score_multiplier: 1.0
-
 rag:
-  inline:
-    - local-docs
-  tool:
-    - local-docs
-```
-
-**`run.yaml` configuration file** — pgvector provider:
-
-```yaml
-vector_io:
-- provider_id: enterprise-kb
-  provider_type: remote::pgvector
-  config:
-    host: localhost
-    port: 5432
-    db: knowledge_db
-    user: lightspeed_user
-    password: ${env.POSTGRES_PASSWORD}
-    kvstore:
-      type: sqlite
-      db_path: .llama/distributions/pgvector/registry.db
+  byok:
+    stores:
+      - rag_id: local-docs
+        backend: faiss
+        embedding_model: sentence-transformers/all-mpnet-base-v2
+        embedding_dimension: 768
+        vector_db_id: vs_e9d8c7b6-43af-4b2d-8e1f-0a9b8c7d6e5f
+        db_path: /data/vector_dbs/local/faiss_store.db
+        score_multiplier: 1.0
+      - rag_id: enterprise-kb
+        backend: pgvector
+        embedding_model: sentence-transformers/all-mpnet-base-v2
+        embedding_dimension: 768
+        vector_db_id: enterprise_docs
+        host: ${env.POSTGRES_HOST}
+        port: ${env.POSTGRES_PORT}
+        db: ${env.POSTGRES_DATABASE}
+        user: ${env.POSTGRES_USER}
+        password: ${env.POSTGRES_PASSWORD}
+  retrieval:
+    inline:
+      sources:
+        - local-docs
+        - enterprise-kb
+    tool:
+      sources:
+        - local-docs
+        - enterprise-kb
 ```
 
 > [!NOTE]
 > For pgvector, ensure your PostgreSQL credentials are available via environment variables
-> (e.g., `POSTGRES_PASSWORD`).
+> (e.g., `POSTGRES_HOST`, `POSTGRES_PASSWORD`).
 
 > [!TIP]
 > A complete working example combining BYOK and OKP is available at

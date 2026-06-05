@@ -317,6 +317,129 @@ def test_construct_vector_io_providers_section_collapses_existing_duplicates() -
     assert output[0]["provider_id"] == "byok_rag1"
 
 
+def test_construct_vector_io_providers_section_pgvector() -> None:
+    """Test generates correct pgvector provider config."""
+    ls_config: dict[str, Any] = {"providers": {}}
+    byok_rag = [
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+            "host": "${env.POSTGRES_HOST}",
+            "port": "${env.POSTGRES_PORT}",
+            "db": "${env.POSTGRES_DATABASE}",
+            "user": "${env.POSTGRES_USER}",
+            "password": "${env.POSTGRES_PASSWORD}",
+        },
+    ]
+    output = construct_vector_io_providers_section(ls_config, byok_rag)
+    assert len(output) == 1
+    provider = output[0]
+    assert provider["provider_id"] == "byok_pg1"
+    assert provider["provider_type"] == "remote::pgvector"
+    assert provider["config"]["persistence"]["namespace"] == "vector_io::pgvector"
+    assert provider["config"]["persistence"]["backend"] == "kv_default"
+    assert provider["config"]["host"] == "${env.POSTGRES_HOST}"
+    assert provider["config"]["port"] == "${env.POSTGRES_PORT}"
+    assert provider["config"]["db"] == "${env.POSTGRES_DATABASE}"
+    assert provider["config"]["user"] == "${env.POSTGRES_USER}"
+    assert provider["config"]["password"] == "${env.POSTGRES_PASSWORD}"
+
+
+def test_construct_vector_io_providers_section_pgvector_custom_fields() -> None:
+    """Test pgvector provider config with custom connection fields."""
+    ls_config: dict[str, Any] = {"providers": {}}
+    byok_rag = [
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+            "host": "db.example.com",
+            "port": "5433",
+            "db": "knowledge_db",
+            "user": "admin",
+            "password": "secret",
+        },
+    ]
+    output = construct_vector_io_providers_section(ls_config, byok_rag)
+    assert output[0]["config"]["host"] == "db.example.com"
+    assert output[0]["config"]["port"] == "5433"
+    assert output[0]["config"]["db"] == "knowledge_db"
+
+
+def test_construct_vector_io_providers_section_mixed() -> None:
+    """Test mixed faiss and pgvector entries generate correct configs."""
+    ls_config: dict[str, Any] = {"providers": {}}
+    byok_rag = [
+        {
+            "rag_id": "faiss1",
+            "vector_db_id": "vs_f",
+            "backend": "faiss",
+        },
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+            "host": "localhost",
+            "port": "5432",
+            "db": "mydb",
+            "user": "user",
+            "password": "pass",
+        },
+    ]
+    output = construct_vector_io_providers_section(ls_config, byok_rag)
+    assert len(output) == 2
+
+    faiss_provider = next(p for p in output if p["provider_id"] == "byok_faiss1")
+    assert faiss_provider["provider_type"] == "inline::faiss"
+    assert faiss_provider["config"]["persistence"]["backend"] == "byok_faiss1_storage"
+
+    pg_provider = next(p for p in output if p["provider_id"] == "byok_pg1")
+    assert pg_provider["provider_type"] == "remote::pgvector"
+    assert pg_provider["config"]["persistence"]["backend"] == "kv_default"
+    assert pg_provider["config"]["host"] == "localhost"
+
+
+def test_enrich_byok_rag_pgvector_end_to_end() -> None:
+    """Test enrich_byok_rag with a pgvector store entry."""
+    ls_config: dict[str, Any] = {}
+    byok_rag = [
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+            "embedding_model": "sentence-transformers/all-mpnet-base-v2",
+            "embedding_dimension": 768,
+            "host": "${env.POSTGRES_HOST}",
+            "port": "${env.POSTGRES_PORT}",
+            "db": "${env.POSTGRES_DATABASE}",
+            "user": "${env.POSTGRES_USER}",
+            "password": "${env.POSTGRES_PASSWORD}",
+        },
+    ]
+    enrich_byok_rag(ls_config, byok_rag)
+
+    # No custom storage backend for pgvector
+    assert "byok_pg1_storage" not in ls_config.get("storage", {}).get("backends", {})
+
+    # vector_io provider is created with pgvector config
+    providers = ls_config["providers"]["vector_io"]
+    pg_provider = next(p for p in providers if p["provider_id"] == "byok_pg1")
+    assert pg_provider["provider_type"] == "remote::pgvector"
+    assert pg_provider["config"]["persistence"]["backend"] == "kv_default"
+    assert pg_provider["config"]["host"] == "${env.POSTGRES_HOST}"
+
+    # vector store is registered
+    store_ids = [
+        s["vector_store_id"] for s in ls_config["registered_resources"]["vector_stores"]
+    ]
+    assert "vs_pg" in store_ids
+
+    # embedding model is registered
+    model_ids = [m["model_id"] for m in ls_config["registered_resources"]["models"]]
+    assert "byok_pg1_embedding" in model_ids
+
+
 def test_enrich_byok_rag_skipped_still_dedupes_vector_io() -> None:
     """When BYOK is off, existing duplicate vector_io entries are still collapsed."""
     dup = {
@@ -383,6 +506,42 @@ def test_construct_storage_backends_section_adds_new() -> None:
     assert "byok_rag1_storage" in output
     assert output["byok_rag1_storage"]["type"] == "kv_sqlite"
     assert output["byok_rag1_storage"]["db_path"] == "/path/to/store1.db"
+
+
+def test_construct_storage_backends_section_skips_pgvector() -> None:
+    """Test pgvector entries are skipped (they use kv_default)."""
+    ls_config: dict[str, Any] = {}
+    byok_rag = [
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+        },
+    ]
+    output = construct_storage_backends_section(ls_config, byok_rag)
+    assert len(output) == 0
+
+
+def test_construct_storage_backends_section_mixed_faiss_pgvector() -> None:
+    """Test only faiss entries get storage backends, pgvector is skipped."""
+    ls_config: dict[str, Any] = {}
+    byok_rag = [
+        {
+            "rag_id": "faiss1",
+            "vector_db_id": "vs_faiss",
+            "backend": "faiss",
+            "db_path": "/tmp/faiss.db",
+        },
+        {
+            "rag_id": "pg1",
+            "vector_db_id": "vs_pg",
+            "backend": "pgvector",
+        },
+    ]
+    output = construct_storage_backends_section(ls_config, byok_rag)
+    assert len(output) == 1
+    assert "byok_faiss1_storage" in output
+    assert "byok_pg1_storage" not in output
 
 
 # =============================================================================
@@ -611,6 +770,60 @@ def test_generate_configuration_with_byok(tmp_path: Path) -> None:
     # Check registered_resources.models for embedding model - named after rag_id
     model_ids = [m["model_id"] for m in result["registered_resources"]["models"]]
     assert "byok_rag1_embedding" in model_ids
+
+
+def test_generate_configuration_with_pgvector(tmp_path: Path) -> None:
+    """Test generate_configuration adds pgvector BYOK entries."""
+    config = {
+        "rag": {
+            "byok": {
+                "stores": [
+                    {
+                        "rag_id": "pg1",
+                        "vector_db_id": "vs_pg",
+                        "embedding_model": "sentence-transformers/all-mpnet-base-v2",
+                        "embedding_dimension": 768,
+                        "backend": "pgvector",
+                        "host": "localhost",
+                        "port": "5432",
+                        "db": "knowledge_db",
+                        "user": "admin",
+                        "password": "secret",
+                    },
+                ],
+            },
+        },
+    }
+    outfile = tmp_path / "output.yaml"
+
+    generate_configuration("tests/configuration/run.yaml", str(outfile), config)
+
+    with open(outfile, encoding="utf-8") as f:
+        result = yaml.safe_load(f)
+
+    # Check registered_resources.vector_stores
+    store_ids = [
+        s["vector_store_id"] for s in result["registered_resources"]["vector_stores"]
+    ]
+    assert "vs_pg" in store_ids
+
+    # Check no custom storage backend was created
+    backends = result.get("storage", {}).get("backends", {})
+    assert "byok_pg1_storage" not in backends
+
+    # Check providers.vector_io has pgvector config
+    pg_provider = next(
+        p
+        for p in result["providers"]["vector_io"]
+        if p.get("provider_id") == "byok_pg1"
+    )
+    assert pg_provider["provider_type"] == "remote::pgvector"
+    assert pg_provider["config"]["host"] == "localhost"
+    assert pg_provider["config"]["persistence"]["backend"] == "kv_default"
+
+    # Check registered_resources.models for embedding model
+    model_ids = [m["model_id"] for m in result["registered_resources"]["models"]]
+    assert "byok_pg1_embedding" in model_ids
 
 
 # =============================================================================

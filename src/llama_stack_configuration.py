@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 BACKEND_TO_LLAMA_STACK_PROVIDER: dict[str, str] = {
     "faiss": "inline::faiss",
-    # "pgvector": "remote::pgvector",  # TODO(are-ces): add enrichment support
+    "pgvector": "remote::pgvector",
 }
 
 if constants.DEFAULT_RAG_BACKEND not in BACKEND_TO_LLAMA_STACK_PROVIDER:
@@ -148,19 +148,24 @@ def construct_storage_backends_section(
     if "storage" in ls_config and "backends" in ls_config["storage"]:
         output = ls_config["storage"]["backends"].copy()
 
-    # add new backends for each BYOK RAG
+    # add new backends for each BYOK RAG (pgvector uses kv_default, skip it)
+    added = 0
     for brag in byok_rag:
         if not brag.get("rag_id"):
             raise ValueError(f"BYOK RAG entry is missing required 'rag_id': {brag}")
+        backend = brag.get("backend", constants.DEFAULT_RAG_BACKEND)
+        if backend == "pgvector":
+            continue
         rag_id = brag["rag_id"]
         backend_name = f"byok_{rag_id}_storage"
         output[backend_name] = {
             "type": "kv_sqlite",
             "db_path": brag.get("db_path", f".llama/{rag_id}.db"),
         }
+        added += 1
     logger.info(
         "Added %s backends into storage.backends section, total backends %s",
-        len(byok_rag),
+        added,
         len(output),
     )
     return output
@@ -295,6 +300,39 @@ def construct_models_section(
     return output
 
 
+def _build_vector_io_config(
+    backend: str, backend_name: str, brag: dict[str, Any]
+) -> dict[str, Any]:
+    """Build the provider config dict for a single vector_io entry.
+
+    Parameters:
+        backend: RAG backend type (e.g. 'faiss', 'pgvector').
+        backend_name: Storage backend name for faiss persistence.
+        brag: BYOK RAG entry dict.
+
+    Returns:
+        dict[str, Any]: Provider config mapping.
+    """
+    if backend == "pgvector":
+        return {
+            "persistence": {
+                "namespace": "vector_io::pgvector",
+                "backend": "kv_default",
+            },
+            "host": brag.get("host", "${env.POSTGRES_HOST}"),
+            "port": brag.get("port", "${env.POSTGRES_PORT}"),
+            "db": brag.get("db", "${env.POSTGRES_DATABASE}"),
+            "user": brag.get("user", "${env.POSTGRES_USER}"),
+            "password": brag.get("password", "${env.POSTGRES_PASSWORD}"),
+        }
+    return {
+        "persistence": {
+            "namespace": f"vector_io::{backend}",
+            "backend": backend_name,
+        }
+    }
+
+
 def construct_vector_io_providers_section(
     ls_config: dict[str, Any], byok_rag: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -355,16 +393,12 @@ def construct_vector_io_providers_section(
                 f"Supported backends: {list(BACKEND_TO_LLAMA_STACK_PROVIDER.keys())}"
             )
 
+        config = _build_vector_io_config(backend, backend_name, brag)
         output.append(
             {
                 "provider_id": provider_id,
                 "provider_type": provider_type,
-                "config": {
-                    "persistence": {
-                        "namespace": f"vector_io::{backend}",
-                        "backend": backend_name,
-                    }
-                },
+                "config": config,
             }
         )
     logger.info(
