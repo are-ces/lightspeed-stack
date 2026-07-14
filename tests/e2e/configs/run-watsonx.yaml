@@ -139,7 +139,11 @@ storage:
       namespace: prompts
       backend: kv_default
 registered_resources:
-  models: 
+  models:
+  - model_id: gpt-4o-mini
+    model_type: llm
+    provider_id: openai
+    provider_model_id: gpt-4o-mini
   - model_id: all-mpnet-base-v2
     model_type: embedding
     provider_id: sentence-transformers
