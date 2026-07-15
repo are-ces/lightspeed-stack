@@ -198,7 +198,7 @@ class QueryRequest(BaseModel):
     )
 
     generate_topic_summary: Optional[bool] = Field(
-        True,
+        False,
         description="Whether to generate topic summary for new conversations",
         examples=[True, False],
     )
@@ -702,7 +702,7 @@ class ResponsesRequest(BaseModel):
     tool_choice: Optional[ToolChoice] = None
     tools: Optional[list[InputTool]] = None
     # LCORE-specific attributes
-    generate_topic_summary: Optional[bool] = True
+    generate_topic_summary: Optional[bool] = False
     shield_ids: Optional[list[str]] = None
     solr: Optional[dict[str, Any]] = None
 

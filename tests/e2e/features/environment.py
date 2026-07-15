@@ -299,6 +299,11 @@ def after_scenario(context: Context, scenario: Scenario) -> None:
         scenario-specific teardown actions to run (e.g.,
         "InvalidFeedbackStorageConfig", "NoCacheConfig").
     """
+    # Throttle requests for rate-limited providers (e.g. watsonx free tier)
+    e2e_scenario_delay = int(os.getenv("E2E_SCENARIO_DELAY_SECONDS", "0"))
+    if e2e_scenario_delay > 0:
+        time.sleep(e2e_scenario_delay)
+
     # Restore Llama Stack FIRST (before any lightspeed-stack restart)
     llama_was_running = getattr(context, "llama_stack_was_running", False)
     if llama_was_running:

@@ -271,6 +271,7 @@ jobs:
         run: |
           echo "E2E_DEFAULT_MODEL_OVERRIDE=meta-llama/llama-3-3-70b-instruct" >> $GITHUB_ENV
           echo "E2E_DEFAULT_PROVIDER_OVERRIDE=watsonx" >> $GITHUB_ENV
+          echo "E2E_SCENARIO_DELAY_SECONDS=2" >> $GITHUB_ENV
 
       - name: Run e2e tests
         env:
